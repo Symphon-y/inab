@@ -1,36 +1,112 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# inab
+
+A local-first, open-source budgeting application inspired by YNAB. Budget with intention.
+
+## Features
+
+- **Zero-Based Budgeting**: Every dollar gets a job
+- **Envelope System**: Assign money to categories and track spending
+- **Account Management**: Track checking, savings, credit cards, and more
+- **Manual Entry**: Full control over your financial data
+- **Reports & Visualizations**: Understand your spending patterns
+- **Local-First**: Your data stays on your machine
+- **Open Source**: Free forever, community-driven
+
+## Tech Stack
+
+- **Frontend**: Next.js 14+ (App Router)
+- **Database**: PostgreSQL 16
+- **ORM**: Drizzle ORM
+- **UI**: shadcn/ui + Tailwind CSS
+- **Charts**: VISX
+- **Testing**: Playwright
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 20+
+- Docker & Docker Compose
+
+### Development Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/inab.git
+   cd inab
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Start everything** (database, schema push, dev server)
+   ```bash
+   npm run dev:init
+   ```
+
+4. **Open the app**
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+### Using Docker Compose (Full Stack)
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Start everything
+docker compose up
+
+# Access the app at http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Available Scripts
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run dev:init` | Start DB, push schema, and run dev server |
+| `npm run build` | Build for production |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint |
+| `npm run docker:dev` | Run full stack in Docker with hot reload |
+| `npm run docker:build` | Rebuild Docker containers |
+| `npm run docker:down` | Stop Docker containers |
+| `npm run docker:logs` | Follow app container logs |
+| `npm run db:generate` | Generate Drizzle migrations |
+| `npm run db:migrate` | Run migrations |
+| `npm run db:push` | Push schema to database |
+| `npm run db:studio` | Open Drizzle Studio |
+| `npx playwright test` | Run E2E tests |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project Structure
 
-## Learn More
+```
+inab/
+├── src/
+│   ├── app/           # Next.js pages and API routes
+│   ├── components/    # React components
+│   ├── db/            # Database schema and config
+│   ├── hooks/         # Custom React hooks
+│   ├── lib/           # Utilities
+│   ├── types/         # TypeScript types
+│   └── validators/    # Zod schemas
+├── e2e/               # Playwright tests
+├── docker/            # Docker configuration
+└── public/            # Static assets
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Documentation
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- [Architecture](./ARCHITECTURE.md) - Technical architecture overview
+- [Conventions](./CONVENTIONS.md) - Coding conventions and best practices
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Contributing
 
-## Deploy on Vercel
+Contributions are welcome! Please read the contributing guidelines before submitting a PR.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT License - see [LICENSE](./LICENSE) for details.
+
+---
+
+Built with intention.

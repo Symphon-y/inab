@@ -14,11 +14,18 @@ services:
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://inab:inab_dev@db:5432/inab_dev
+      # Enable polling for file watching (required for Windows/Docker)
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
+      - NEXT_TELEMETRY_DISABLED=1
     depends_on:
       db:
         condition: service_healthy
     networks:
       - inab-network
+    # Keep container running and allow graceful shutdown
+    stdin_open: true
+    tty: true
 
   db:
     image: postgres:16-alpine
