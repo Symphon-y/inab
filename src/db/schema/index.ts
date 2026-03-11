@@ -7,6 +7,12 @@ export * from './plans';
 // Accounts
 export * from './accounts';
 
+// Account Connections
+export * from './account-connections';
+
+// Import Sync Logs
+export * from './import-sync-logs';
+
 // Categories
 export * from './categories';
 
