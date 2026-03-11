@@ -22,6 +22,7 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "csv-parse": "^6.1.0",
     "drizzle-orm": "^0.45.1",
     "lucide-react": "^0.577.0",
     "next": "16.1.6",
@@ -38,6 +39,7 @@
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
+    "@types/csv-parse": "^1.1.12",
     "@types/node": "^20",
     "@types/pg": "^8.18.0",
     "@types/react": "^19",
