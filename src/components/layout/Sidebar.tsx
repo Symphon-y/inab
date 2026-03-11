@@ -6,9 +6,12 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Wallet,
   PiggyBank,
+  Target,
   TrendingUp,
   Settings,
   Plus,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -16,6 +19,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { AccountItem } from '@/components/features/accounts';
 import { AccountForm, AccountFormData } from '@/components/features/accounts';
+import { PlanSwitcher } from '@/components/features/plans';
 import type { Account } from '@/db/schema';
 
 interface SidebarProps {
@@ -30,9 +34,11 @@ export function Sidebar({ className }: SidebarProps) {
   const [showAccountForm, setShowAccountForm] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [addingToBudget, setAddingToBudget] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const navItems = [
     { label: 'Budget', href: '/budget', icon: PiggyBank },
+    { label: 'Goals', href: '/goals', icon: Target },
     { label: 'Reports', href: '/reports', icon: TrendingUp },
   ];
 
@@ -128,15 +134,48 @@ export function Sidebar({ className }: SidebarProps) {
 
   return (
     <>
-      <aside className={cn('flex h-full w-64 flex-col border-r bg-muted/30', className)}>
-        <div className="flex h-14 items-center border-b px-4">
-          <Link href="/budget" className="flex items-center gap-2 font-semibold">
-            <Wallet className="h-5 w-5" />
-            <span>inab</span>
-          </Link>
+      <aside className={cn(
+        'flex h-full flex-col border-r bg-muted/30 transition-all duration-300',
+        isCollapsed ? 'w-16' : 'w-64',
+        className
+      )}>
+        <div className="flex h-14 items-center border-b px-4 justify-between">
+          {!isCollapsed && (
+            <Link href="/budget" className="flex items-center gap-2 font-semibold">
+              <Wallet className="h-5 w-5" />
+              <span>inab</span>
+            </Link>
+          )}
+          {isCollapsed && (
+            <Link href="/budget" className="flex items-center justify-center w-full">
+              <Wallet className="h-5 w-5" />
+            </Link>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn('h-7 w-7', isCollapsed && 'hidden')}
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </Button>
         </div>
 
         <ScrollArea className="flex-1 px-3 py-4">
+          {!isCollapsed && (
+            <>
+              <div className="px-0 py-2">
+                <PlanSwitcher />
+              </div>
+              <Separator className="my-2" />
+            </>
+          )}
+
           <nav className="space-y-1">
             {navItems.map((item) => {
               const isActive = pathname.startsWith(item.href);
@@ -145,37 +184,40 @@ export function Sidebar({ className }: SidebarProps) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  title={isCollapsed ? item.label : undefined}
                   className={cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
                     isActive
                       ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                    isCollapsed && 'justify-center px-2'
                   )}
                 >
                   <Icon className="h-4 w-4" />
-                  {item.label}
+                  {!isCollapsed && item.label}
                 </Link>
               );
             })}
           </nav>
 
-          <Separator className="my-4" />
+          {!isCollapsed && <Separator className="my-4" />}
 
           {/* Budget Accounts */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between px-3 py-2">
-              <span className="text-xs font-medium uppercase text-muted-foreground">
-                Budget
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-5 w-5"
-                onClick={() => handleAddAccount(true)}
-              >
-                <Plus className="h-3 w-3" />
-              </Button>
-            </div>
+          {!isCollapsed && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between px-3 py-2">
+                <span className="text-xs font-medium uppercase text-muted-foreground">
+                  Budget
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5"
+                  onClick={() => handleAddAccount(true)}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
             {loading ? (
               <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>
             ) : budgetAccounts.length === 0 ? (
@@ -196,25 +238,27 @@ export function Sidebar({ className }: SidebarProps) {
                 <span className="font-medium tabular-nums">{formatCurrency(totalBudget)}</span>
               </div>
             )}
-          </div>
+            </div>
+          )}
 
-          <Separator className="my-4" />
+          {!isCollapsed && <Separator className="my-4" />}
 
           {/* Tracking Accounts */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between px-3 py-2">
-              <span className="text-xs font-medium uppercase text-muted-foreground">
-                Tracking
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-5 w-5"
-                onClick={() => handleAddAccount(false)}
-              >
-                <Plus className="h-3 w-3" />
-              </Button>
-            </div>
+          {!isCollapsed && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between px-3 py-2">
+                <span className="text-xs font-medium uppercase text-muted-foreground">
+                  Tracking
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5"
+                  onClick={() => handleAddAccount(false)}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
             {loading ? (
               <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>
             ) : trackingAccounts.length === 0 ? (
@@ -242,21 +286,35 @@ export function Sidebar({ className }: SidebarProps) {
                 </span>
               </div>
             )}
-          </div>
+            </div>
+          )}
         </ScrollArea>
 
-        <div className="border-t p-3">
+        <div className="border-t p-3 space-y-2">
+          {isCollapsed && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-full"
+              onClick={() => setIsCollapsed(false)}
+              title="Expand sidebar"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          )}
           <Link
             href="/settings"
+            title={isCollapsed ? 'Settings' : undefined}
             className={cn(
               'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
               pathname === '/settings'
                 ? 'bg-muted'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              isCollapsed && 'justify-center px-2'
             )}
           >
             <Settings className="h-4 w-4" />
-            Settings
+            {!isCollapsed && 'Settings'}
           </Link>
         </div>
       </aside>

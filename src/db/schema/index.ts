@@ -1,6 +1,9 @@
 // Settings
 export * from './settings';
 
+// Plans
+export * from './plans';
+
 // Accounts
 export * from './accounts';
 

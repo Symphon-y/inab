@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { EmojiPicker } from '@/components/ui/emoji-picker';
 import type { Category } from '@/db/schema';
 
 interface CategoryFormProps {
@@ -24,6 +25,7 @@ interface CategoryFormProps {
 export interface CategoryFormData {
   name: string;
   categoryGroupId: string;
+  icon?: string;
   note?: string;
   sortOrder?: number;
 }
@@ -37,6 +39,7 @@ export function CategoryForm({
 }: CategoryFormProps) {
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
+  const [icon, setIcon] = useState('');
   const [note, setNote] = useState('');
 
   const isEditing = !!category;
@@ -44,9 +47,11 @@ export function CategoryForm({
   useEffect(() => {
     if (category) {
       setName(category.name);
+      setIcon(category.icon || '');
       setNote(category.note || '');
     } else {
       setName('');
+      setIcon('');
       setNote('');
     }
   }, [category, open]);
@@ -59,11 +64,13 @@ export function CategoryForm({
       await onSubmit({
         name,
         categoryGroupId: category?.categoryGroupId || categoryGroupId,
+        icon: icon.trim() || undefined,
         note: note.trim() || undefined,
         sortOrder: category?.sortOrder,
       });
       onOpenChange(false);
       setName('');
+      setIcon('');
       setNote('');
     } finally {
       setLoading(false);
@@ -85,6 +92,13 @@ export function CategoryForm({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="icon" className="text-sm font-medium">
+              Icon
+            </label>
+            <EmojiPicker value={icon} onChange={setIcon} />
+          </div>
+
           <div className="space-y-2">
             <label htmlFor="name" className="text-sm font-medium">
               Category Name

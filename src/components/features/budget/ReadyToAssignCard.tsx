@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 interface ReadyToAssignCardProps {
   year: number;
   month: number;
+  refreshTrigger?: number;
 }
 
 interface BudgetSummary {
@@ -15,7 +16,7 @@ interface BudgetSummary {
   totalActivity: number;
 }
 
-export function ReadyToAssignCard({ year, month }: ReadyToAssignCardProps) {
+export function ReadyToAssignCard({ year, month, refreshTrigger }: ReadyToAssignCardProps) {
   const [summary, setSummary] = useState<BudgetSummary>({
     readyToAssign: 0,
     totalIncome: 0,
@@ -26,7 +27,10 @@ export function ReadyToAssignCard({ year, month }: ReadyToAssignCardProps) {
 
   const fetchSummary = useCallback(async () => {
     try {
-      const res = await fetch(`/api/budget/summary?year=${year}&month=${month}`);
+      setLoading(true);
+      const res = await fetch(`/api/budget/summary?year=${year}&month=${month}`, {
+        cache: 'no-store',
+      });
       if (res.ok) {
         const data = await res.json();
         setSummary(data);
@@ -40,7 +44,7 @@ export function ReadyToAssignCard({ year, month }: ReadyToAssignCardProps) {
 
   useEffect(() => {
     fetchSummary();
-  }, [fetchSummary]);
+  }, [fetchSummary, refreshTrigger]);
 
   const formatCurrency = (cents: number) => {
     return new Intl.NumberFormat('en-US', {

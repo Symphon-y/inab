@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
 export default function Home() {
-  redirect('/budget');
+  // Redirect to plans page where user can select or create a plan
+  redirect('/plans');
 }

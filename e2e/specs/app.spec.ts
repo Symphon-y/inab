@@ -36,7 +36,15 @@ test.describe('inab Application', () => {
     const initialMonth = await budgetPage.getMonthName();
 
     await budgetPage.goToNextMonth();
+
+    // Wait for URL to change
     await page.waitForURL(/\/budget\/\d{4}\/\d{1,2}/);
+
+    // Wait for network to settle (page re-render complete)
+    await page.waitForLoadState('networkidle');
+
+    // Wait a bit for React hydration
+    await page.waitForTimeout(500);
 
     const nextMonth = await budgetPage.getMonthName();
     expect(nextMonth).not.toBe(initialMonth);

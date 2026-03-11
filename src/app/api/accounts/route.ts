@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { accounts } from '@/db/schema';
-import { eq, isNull } from 'drizzle-orm';
+import { eq, isNull, and } from 'drizzle-orm';
+import { getActivePlanId } from '@/lib/plan-context';
 
 export async function GET() {
   try {
+    const planId = await getActivePlanId();
+
     const data = await db
       .select()
       .from(accounts)
-      .where(isNull(accounts.deletedAt))
+      .where(and(
+        eq(accounts.planId, planId),
+        isNull(accounts.deletedAt)
+      ))
       .orderBy(accounts.sortOrder);
 
     return NextResponse.json(data);
@@ -23,11 +29,13 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const planId = await getActivePlanId();
     const body = await request.json();
 
     const [account] = await db
       .insert(accounts)
       .values({
+        planId,
         name: body.name,
         accountType: body.accountType,
         balance: body.balance ?? 0,

@@ -42,6 +42,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
       .update(categories)
       .set({
         name: body.name,
+        icon: body.icon,
         categoryGroupId: body.categoryGroupId,
         sortOrder: body.sortOrder,
         isHidden: body.isHidden,

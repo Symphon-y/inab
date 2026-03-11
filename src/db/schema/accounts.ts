@@ -1,4 +1,6 @@
 import { pgTable, uuid, varchar, bigint, boolean, integer, text, timestamp, pgEnum } from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
+import { plans } from './plans';
 
 export const accountTypeEnum = pgEnum('account_type', [
   'checking',
@@ -12,6 +14,7 @@ export const accountTypeEnum = pgEnum('account_type', [
 
 export const accounts = pgTable('accounts', {
   id: uuid('id').primaryKey().defaultRandom(),
+  planId: uuid('plan_id').notNull().references(() => plans.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 255 }).notNull(),
   accountType: accountTypeEnum('account_type').notNull(),
   balance: bigint('balance', { mode: 'number' }).notNull().default(0),
@@ -27,6 +30,13 @@ export const accounts = pgTable('accounts', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 });
+
+export const accountsRelations = relations(accounts, ({ one }) => ({
+  plan: one(plans, {
+    fields: [accounts.planId],
+    references: [plans.id],
+  }),
+}));
 
 export type Account = typeof accounts.$inferSelect;
 export type NewAccount = typeof accounts.$inferInsert;

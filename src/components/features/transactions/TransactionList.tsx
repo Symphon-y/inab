@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Pencil, Trash2, Plus } from 'lucide-react';
+import { Pencil, Trash2, Plus, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { TransactionListSkeleton } from './TransactionListSkeleton';
 import { cn } from '@/lib/utils';
 import type { Transaction, TransactionStatus, TransactionFlag } from '@/db/schema';
 
@@ -82,22 +83,19 @@ export function TransactionList({
   }).reverse();
 
   if (loading) {
-    return (
-      <div className="rounded-lg border">
-        <div className="p-8 text-center text-muted-foreground">
-          <p>Loading transactions...</p>
-        </div>
-      </div>
-    );
+    return <TransactionListSkeleton />;
   }
 
   if (transactions.length === 0) {
     return (
       <div className="rounded-lg border">
-        <div className="p-8 text-center text-muted-foreground">
-          <p>No transactions yet.</p>
-          <p className="mt-2 text-sm">Add your first transaction to get started.</p>
-          <Button className="mt-4" onClick={onAddTransaction}>
+        <div className="p-12 text-center">
+          <Receipt className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
+          <h3 className="text-lg font-medium mb-2">No transactions yet</h3>
+          <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+            Add your first transaction to start tracking your spending and income.
+          </p>
+          <Button onClick={onAddTransaction}>
             <Plus className="mr-2 h-4 w-4" />
             Add Transaction
           </Button>

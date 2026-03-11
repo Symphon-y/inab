@@ -30,6 +30,7 @@ export async function POST(request: Request) {
       .values({
         categoryGroupId: body.categoryGroupId,
         name: body.name,
+        icon: body.icon,
         sortOrder: body.sortOrder ?? 0,
         note: body.note,
       })

@@ -3,6 +3,35 @@ import { transactions, budgetAllocations, accounts } from '@/db/schema';
 import { eq, and, gte, lt, sql, isNull } from 'drizzle-orm';
 
 /**
+ * Calculate carryover from previous month's available balance
+ * @param categoryId - The category ID
+ * @param year - Current year
+ * @param month - Current month (1-12)
+ * @returns Previous month's available balance, or 0 if no previous allocation exists
+ */
+export async function calculateCarryover(
+  categoryId: string,
+  year: number,
+  month: number
+): Promise<number> {
+  const prevMonth = month === 1 ? 12 : month - 1;
+  const prevYear = month === 1 ? year - 1 : year;
+  const prevMonthDate = new Date(prevYear, prevMonth - 1, 1);
+
+  const [prevAllocation] = await db
+    .select()
+    .from(budgetAllocations)
+    .where(
+      and(
+        eq(budgetAllocations.categoryId, categoryId),
+        eq(budgetAllocations.month, prevMonthDate)
+      )
+    );
+
+  return prevAllocation?.available || 0;
+}
+
+/**
  * Recalculate budget allocation activity for a specific category and month
  * Activity = sum of all negative (outflow) transactions in the month for that category
  */
@@ -30,6 +59,9 @@ export async function updateBudgetActivity(categoryId: string, year: number, mon
 
   const activity = Number(result[0]?.total || 0);
 
+  // Calculate carryover from previous month
+  const carryover = await calculateCarryover(categoryId, year, month);
+
   // Check if allocation exists for this category/month
   const [existingAllocation] = await db
     .select()
@@ -42,26 +74,28 @@ export async function updateBudgetActivity(categoryId: string, year: number, mon
     );
 
   if (existingAllocation) {
-    // Update existing allocation
-    const newAvailable = existingAllocation.carryover + existingAllocation.assigned + activity;
+    // Update existing allocation with recalculated carryover
+    const newAvailable = carryover + existingAllocation.assigned + activity;
 
     await db
       .update(budgetAllocations)
       .set({
         activity,
+        carryover,
         available: newAvailable,
         updatedAt: new Date(),
       })
       .where(eq(budgetAllocations.id, existingAllocation.id));
-  } else if (activity !== 0) {
-    // Create new allocation if there's activity (spending) but no allocation yet
+  } else if (activity !== 0 || carryover !== 0) {
+    // Create new allocation if there's activity (spending) or carryover
+    const newAvailable = carryover + activity;
     await db.insert(budgetAllocations).values({
       categoryId,
       month: monthStart,
       assigned: 0,
       activity,
-      available: activity, // Will be negative if there's spending
-      carryover: 0,
+      available: newAvailable,
+      carryover,
     });
   }
 }

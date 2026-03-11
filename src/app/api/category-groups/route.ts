@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { categoryGroups, categories } from '@/db/schema';
-import { eq, isNull, asc } from 'drizzle-orm';
+import { eq, isNull, asc, and } from 'drizzle-orm';
+import { getActivePlanId } from '@/lib/plan-context';
 
 export async function GET() {
   try {
+    const planId = await getActivePlanId();
+
     const groups = await db
       .select()
       .from(categoryGroups)
-      .where(isNull(categoryGroups.deletedAt))
+      .where(and(
+        eq(categoryGroups.planId, planId),
+        isNull(categoryGroups.deletedAt)
+      ))
       .orderBy(asc(categoryGroups.sortOrder));
 
     // Fetch categories for each group
@@ -39,11 +45,13 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const planId = await getActivePlanId();
     const body = await request.json();
 
     const [group] = await db
       .insert(categoryGroups)
       .values({
+        planId,
         name: body.name,
         sortOrder: body.sortOrder ?? 0,
       })

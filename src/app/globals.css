@@ -126,4 +126,13 @@
   html {
     @apply font-sans;
   }
+
+  /* Smooth transitions for interactive elements */
+  button, a, [role="button"] {
+    @apply transition-colors duration-200;
+  }
+
+  input, textarea, select {
+    @apply transition-all duration-200;
+  }
 }

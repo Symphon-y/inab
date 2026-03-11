@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { toast } from 'sonner';
 import { TransactionList, TransactionForm } from '@/components/features/transactions';
 import type { TransactionFormData } from '@/components/features/transactions';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -83,35 +84,50 @@ export function AccountTransactions({ account }: AccountTransactionsProps) {
       if (res.ok) {
         setTransactions((prev) => prev.filter((t) => t.id !== transactionToDelete.id));
         setTransactionToDelete(null);
+        toast.success('Transaction deleted successfully');
+      } else {
+        toast.error('Failed to delete transaction');
       }
     } catch (error) {
       console.error('Failed to delete transaction:', error);
+      toast.error('Failed to delete transaction');
     }
   };
 
   const handleSubmitTransaction = async (data: TransactionFormData) => {
-    if (editingTransaction) {
-      // Update existing transaction
-      const res = await fetch(`/api/transactions/${editingTransaction.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
+    try {
+      if (editingTransaction) {
+        // Update existing transaction
+        const res = await fetch(`/api/transactions/${editingTransaction.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
 
-      if (res.ok) {
-        await fetchTransactions(); // Refresh list
-      }
-    } else {
-      // Create new transaction
-      const res = await fetch('/api/transactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
+        if (res.ok) {
+          await fetchTransactions(); // Refresh list
+          toast.success('Transaction updated successfully');
+        } else {
+          toast.error('Failed to update transaction');
+        }
+      } else {
+        // Create new transaction
+        const res = await fetch('/api/transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
 
-      if (res.ok) {
-        await fetchTransactions(); // Refresh list
+        if (res.ok) {
+          await fetchTransactions(); // Refresh list
+          toast.success('Transaction created successfully');
+        } else {
+          toast.error('Failed to create transaction');
+        }
       }
+    } catch (error) {
+      console.error('Failed to save transaction:', error);
+      toast.error(editingTransaction ? 'Failed to update transaction' : 'Failed to create transaction');
     }
   };
 

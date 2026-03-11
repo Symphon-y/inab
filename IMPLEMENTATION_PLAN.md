@@ -19,13 +19,15 @@ This plan outlines the implementation of missing features and UI/UX improvements
 - shadcn/ui component library integration
 - **Phase 1.1: Category & Category Group Management** ✅
 - **Phase 1.2: Budget Grid & Allocation Logic** ✅
+- **Phase 1.3: Transaction Management** ✅
+- **Phase 2: Reports & Visualizations** ✅
 
 ### ❌ Missing Core Features
 1. ~~**Budget Grid Functionality**~~ - ✅ **COMPLETE** (allocation/available calculations working)
-2. **Transaction List UI** - Account pages show placeholders ⏳ **IN PROGRESS (Phase 1.3)**
+2. ~~**Transaction List UI**~~ - ✅ **COMPLETE** (full CRUD with running balance)
 3. ~~**Category Management UI**~~ - ✅ **COMPLETE** (create/edit/delete functional)
 4. ~~**Budget Allocation Logic**~~ - ✅ **COMPLETE** (assign money working)
-5. **Report Visualizations** - Empty report pages
+5. ~~**Report Visualizations**~~ - ✅ **COMPLETE** (spending, net worth, income vs expense)
 6. **Settings Persistence** - Currency/date format not saved
 7. **Goal Management UI** - No UI for goals
 8. **Account Reconciliation** - No reconciliation interface
@@ -171,77 +173,90 @@ This plan outlines the implementation of missing features and UI/UX improvements
 
 ---
 
-### Phase 2: Reports & Visualizations (Medium Priority)
+### Phase 2: Reports & Visualizations ✅ **COMPLETE**
 
-#### 2.1 Spending Report (Pie Chart)
+#### 2.1 Spending Report (Pie Chart) ✅ **COMPLETE**
 **Scope**: Visualize spending by category and payee
 
 **Tasks**:
-- [ ] Install and configure VISX for React charts
-- [ ] Create `SpendingPieChart` component
-- [ ] Add time range selector (This Month, Last 30 Days, Last 3 Months, etc.)
-- [ ] Implement category grouping
-- [ ] Add drill-down from category to transactions
-- [ ] Create legend with percentages
-- [ ] Add export to CSV functionality
+- [x] Install and configure Recharts library (switched from VISX for React 19 compatibility)
+- [x] Create `SpendingPieChart` component
+- [x] Add time range selector (Last 30 Days, Last 3 Months, Last 6 Months, Last Year, YTD, All Time, Custom)
+- [x] Implement category grouping
+- [x] Create legend with percentages
+- [x] Add custom tooltip with amounts and percentages
+- [ ] Add drill-down from category to transactions - **Deferred to Phase 5**
+- [ ] Add export to CSV functionality - **Deferred to Phase 3**
 
 **API Endpoint**:
 ```typescript
-GET /api/reports/spending?startDate=X&endDate=Y&groupBy=category|payee
+✅ GET /api/reports/spending?startDate=X&endDate=Y&groupBy=category|payee
 ```
 
-**UI Components**:
-- SpendingPieChart (VISX)
-- TimeRangeSelector
-- SpendingLegend
-- DrillDownModal
+**UI Components Created**:
+- ✅ SpendingPieChart (Recharts)
+- ✅ TimeRangeSelector (with presets and custom range)
+- ✅ Custom tooltip and labels
+- ✅ Empty state handling
 
 ---
 
-#### 2.2 Net Worth Report (Line Chart)
+#### 2.2 Net Worth Report (Line Chart) ✅ **COMPLETE**
 **Scope**: Track net worth over time
 
 **Tasks**:
-- [ ] Create `NetWorthLineChart` component
-- [ ] Calculate net worth snapshots at month boundaries
-- [ ] Show all accounts vs. budget accounts toggle
-- [ ] Add account breakdown tooltip on hover
-- [ ] Implement zoom/pan for long time ranges
-- [ ] Add goal overlay lines
+- [x] Create `NetWorthLineChart` component
+- [x] Calculate net worth snapshots (current implementation, historical deferred)
+- [x] Show all accounts vs. budget accounts toggle
+- [x] Add account breakdown by type
+- [x] Display current net worth prominently
+- [ ] Implement zoom/pan for long time ranges - **Deferred to Phase 4**
+- [ ] Add goal overlay lines - **Deferred to Phase 3**
+- [ ] Track historical snapshots at month boundaries - **Deferred to Phase 3**
 
 **API Endpoint**:
 ```typescript
-GET /api/reports/net-worth?startDate=X&endDate=Y&accountType=all|budget
+✅ GET /api/reports/net-worth?accountType=all|budget
 ```
 
-**UI Components**:
-- NetWorthLineChart (VISX)
-- AccountToggle
-- ChartTooltip
-- TimeRangeZoom
+**UI Components Created**:
+- ✅ NetWorthLineChart (Recharts)
+- ✅ Account breakdown cards by type
+- ✅ Current net worth display
+- ✅ Empty state for historical data
 
 ---
 
-#### 2.3 Income vs Expense Report (Bar Chart)
+#### 2.3 Income vs Expense Report (Bar Chart) ✅ **COMPLETE**
 **Scope**: Compare income and expenses month-by-month
 
 **Tasks**:
-- [ ] Create `IncomeExpenseBarChart` component
-- [ ] Group transactions by month
-- [ ] Calculate income (positive transactions to budget accounts)
-- [ ] Calculate expenses (negative transactions from budget accounts)
-- [ ] Show net savings as overlay line
-- [ ] Add category breakdown on click
+- [x] Create `IncomeExpenseBarChart` component
+- [x] Group transactions by month
+- [x] Calculate income (positive transactions to budget accounts)
+- [x] Calculate expenses (negative transactions from budget accounts)
+- [x] Show net savings as overlay line
+- [x] Display total income, expenses, net savings, and avg savings rate
+- [ ] Add category breakdown on click - **Deferred to Phase 5**
 
 **API Endpoint**:
 ```typescript
-GET /api/reports/income-expense?startDate=X&endDate=Y
+✅ GET /api/reports/income-expense?startDate=X&endDate=Y
 ```
 
-**UI Components**:
-- IncomeExpenseBarChart (VISX)
-- NetSavingsLine
-- MonthlyBreakdownModal
+**UI Components Created**:
+- ✅ IncomeExpenseBarChart (Recharts ComposedChart)
+- ✅ Net savings line overlay
+- ✅ Summary cards with totals and averages
+- ✅ Custom tooltip with formatted values
+
+---
+
+**Reports Page Integration**: ✅ **COMPLETE**
+- Created comprehensive reports dashboard
+- Integrated all three chart components
+- Added time range selector for date filtering
+- Organized charts in clean, responsive layout
 
 ---
 

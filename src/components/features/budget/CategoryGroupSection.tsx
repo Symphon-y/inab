@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { CategoryRow } from './CategoryRow';
 import { cn } from '@/lib/utils';
-import type { CategoryGroup, Category } from '@/db/schema';
+import type { CategoryGroup, Category, Goal } from '@/db/schema';
 
 interface CategoryWithAllocations extends Category {
   assigned: number;
@@ -22,23 +22,29 @@ interface CategoryWithAllocations extends Category {
 interface CategoryGroupSectionProps {
   group: CategoryGroup;
   categories: CategoryWithAllocations[];
+  onSelectCategory?: (category: Category) => void;
   onEditGroup: (group: CategoryGroup) => void;
   onDeleteGroup: (group: CategoryGroup) => void;
   onAddCategory: (groupId: string) => void;
   onEditCategory: (category: Category) => void;
   onDeleteCategory: (category: Category) => void;
   onAssignToCategory: (category: Category) => void;
+  onSetGoal: (category: Category) => void;
+  getGoalForCategory: (categoryId: string) => Goal | null;
 }
 
 export function CategoryGroupSection({
   group,
   categories,
+  onSelectCategory,
   onEditGroup,
   onDeleteGroup,
   onAddCategory,
   onEditCategory,
   onDeleteCategory,
   onAssignToCategory,
+  onSetGoal,
+  getGoalForCategory,
 }: CategoryGroupSectionProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -57,10 +63,11 @@ export function CategoryGroupSection({
   return (
     <div className="border-b last:border-b-0">
       {/* Group Header */}
-      <div className="bg-muted/30 px-4 py-2 flex items-center gap-2 group hover:bg-muted/50 transition-colors">
+      <div className="grid grid-cols-4 gap-4 bg-muted/30 px-4 py-2 items-center group hover:bg-muted/50 transition-colors">
         <button
+          type="button"
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="flex items-center gap-2 flex-1 min-w-0"
+          className="col-span-2 flex items-center gap-2 min-w-0"
         >
           {isCollapsed ? (
             <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -72,8 +79,9 @@ export function CategoryGroupSection({
           </span>
         </button>
 
-        <div className="flex items-center gap-1">
+        <div className="col-span-2 flex items-center justify-end gap-1">
           <Button
+            type="button"
             variant="ghost"
             size="icon"
             className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -86,6 +94,7 @@ export function CategoryGroupSection({
           <DropdownMenu>
             <DropdownMenuTrigger>
               <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -135,9 +144,12 @@ export function CategoryGroupSection({
                   assigned={category.assigned}
                   activity={category.activity}
                   available={category.available}
+                  goal={getGoalForCategory(category.id)}
+                  onClick={onSelectCategory}
                   onEdit={onEditCategory}
                   onDelete={onDeleteCategory}
                   onAssign={onAssignToCategory}
+                  onSetGoal={onSetGoal}
                 />
               ))}
 

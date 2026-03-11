@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { budgetAllocations, categories } from '@/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
+import { calculateCarryover } from '@/lib/budget';
 
 export async function GET(request: Request) {
   try {
@@ -57,6 +58,9 @@ export async function POST(request: Request) {
     // Create date for the first day of the month
     const monthDate = new Date(year, month - 1, 1);
 
+    // Calculate carryover from previous month
+    const carryover = await calculateCarryover(categoryId, year, month);
+
     // Check if allocation already exists
     const [existing] = await db
       .select()
@@ -73,21 +77,22 @@ export async function POST(request: Request) {
     if (existing) {
       // Update existing allocation
       const newAssigned = assigned; // Amount in cents
-      const newAvailable = existing.carryover + newAssigned + existing.activity;
+      const newAvailable = carryover + newAssigned + existing.activity;
 
       [allocation] = await db
         .update(budgetAllocations)
         .set({
           assigned: newAssigned,
+          carryover,
           available: newAvailable,
           updatedAt: new Date(),
         })
         .where(eq(budgetAllocations.id, existing.id))
         .returning();
     } else {
-      // Create new allocation
+      // Create new allocation with calculated carryover
       const newAssigned = assigned;
-      const newAvailable = newAssigned; // No carryover or activity yet
+      const newAvailable = carryover + newAssigned; // Carryover + assigned
 
       [allocation] = await db
         .insert(budgetAllocations)
@@ -97,7 +102,7 @@ export async function POST(request: Request) {
           assigned: newAssigned,
           activity: 0,
           available: newAvailable,
-          carryover: 0,
+          carryover,
         })
         .returning();
     }
