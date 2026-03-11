@@ -49,17 +49,22 @@ async function fetchTransactionsFromProvider(
   const sinceDate = connection.syncStartDate || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000); // Last 90 days default
 
   if (connection.provider === 'simplefin') {
+    console.log(`Fetching SimpleFin data since ${sinceDate.toISOString()}`);
     const accounts = await fetchSimpleFinData(connection.encryptedCredentials, sinceDate);
+    console.log(`SimpleFin returned ${accounts.length} accounts`);
+
     const account = accounts.find((a) => a.id === connection.externalAccountId);
 
     if (!account) {
       throw new Error('Account not found at SimpleFIN');
     }
 
+    console.log(`Found account ${account.id} with ${account.transactions.length} transactions`);
+
     return account.transactions.map((txn) => ({
       externalId: txn.id,
       date: new Date(txn.posted * 1000),
-      amount: txn.amount,
+      amount: Math.round(Number(txn.amount)), // Ensure it's an integer (SimpleFin returns cents as number/string)
       payee: txn.payee || txn.description,
       memo: txn.memo,
       status: 'cleared', // SimpleFIN only returns posted transactions
@@ -113,6 +118,7 @@ export async function importTransactionsForAccount(
   try {
     // Fetch transactions from provider
     const importedTransactions = await fetchTransactionsFromProvider(connection);
+    console.log(`📥 Fetched ${importedTransactions.length} transactions from ${connection.provider}`);
 
     let imported = 0;
     let updated = 0;
@@ -183,6 +189,15 @@ export async function importTransactionsForAccount(
           }
         } else {
           // Insert new transaction
+          console.log(`➕ Inserting new transaction:`, {
+            accountId: connection.accountId,
+            importId,
+            date: txn.date,
+            amount: txn.amount,
+            payee: txn.payee,
+            status: txn.status,
+          });
+
           const [newTransaction] = await db
             .insert(transactions)
             .values({
@@ -196,6 +211,7 @@ export async function importTransactionsForAccount(
             })
             .returning();
 
+          console.log(`✅ Transaction inserted with ID:`, newTransaction.id);
           imported++;
 
           // Update account balance

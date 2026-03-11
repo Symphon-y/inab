@@ -33,7 +33,9 @@ export async function POST(request: Request, { params }: RouteParams) {
     }
 
     // Trigger import
+    console.log(`🔄 Starting sync for account ${accountId}, connection ${connection.id}`);
     const result = await importTransactionsForAccount(connection.id);
+    console.log(`✅ Sync completed:`, result);
 
     return NextResponse.json({
       success: true,

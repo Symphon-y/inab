@@ -449,4 +449,64 @@ The bank transaction import feature is **production ready**. To deploy:
 
 ---
 
-**Last Updated:** 2026-03-11 (ALL PHASES COMPLETE ✅)
+---
+
+## Phase 7: SimpleFin UI Implementation ⏳
+
+### Goal
+Add user interface for SimpleFin bank connections. Backend is complete - this phase exposes functionality to users.
+
+### Phase 7.1: Enhanced Account Creation Form
+- [ ] Add Tabs component to AccountForm (Manual vs SimpleFin)
+- [ ] Create SimpleFinConnectionForm component
+  - [ ] SimpleFin Access URL input field
+  - [ ] "Test Connection" button with loading state
+  - [ ] Display connection test results (success/error)
+  - [ ] Show available SimpleFin accounts list
+  - [ ] Account selector dropdown
+  - [ ] Optional sync start date picker
+- [ ] Implement connection testing flow
+- [ ] Create account + connection in single flow
+- [ ] Handle errors gracefully
+
+### Phase 7.2: Connection Status Display
+- [ ] Create ConnectedBadge component
+  - [ ] Green dot for active connections
+  - [ ] Red dot for error/expired
+  - [ ] Tooltip with last sync time
+- [ ] Modify AccountItem to show badge
+- [ ] Add sync/disconnect options to dropdown menu
+
+### Phase 7.3: Sync Controls
+- [ ] Create SyncButton component
+  - [ ] Loading state during sync
+  - [ ] Toast notification with results
+  - [ ] Display imported/updated/skipped counts
+- [ ] Add sync controls to account page header
+- [ ] Show connection status on account page
+- [ ] Display last sync timestamp
+
+### Phase 7.4: Connection Management
+- [ ] Create ReconnectDialog component
+- [ ] Handle expired connection reconnection
+- [ ] Implement disconnect confirmation
+- [ ] Update connection credentials flow
+
+### Phase 7.5: Custom Hooks
+- [ ] Create useAccountConnection hook
+- [ ] Create useAccountSync hook
+- [ ] Implement React Query for caching
+
+### Phase 7.6: E2E Testing
+- [ ] Create simplefin-connection.spec.ts
+- [ ] Test SimpleFin tab visibility
+- [ ] Test connection validation
+- [ ] Test account creation with SimpleFin
+- [ ] Test sync functionality
+- [ ] Test disconnect flow
+
+**Phase 7 Completion:** ⬜ 0/32 tasks
+
+---
+
+**Last Updated:** 2026-03-11 (Phases 1-6 complete, Phase 7 in progress)

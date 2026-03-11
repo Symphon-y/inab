@@ -55,19 +55,33 @@ export async function fetchSimpleFinData(
   try {
     const credentials: SimpleFinCredentials = JSON.parse(decrypt(encryptedCredentials));
 
-    // SimpleFIN uses HTTP Basic Auth with the access URL
+    // Parse URL and extract credentials for Basic Auth
     const url = new URL(credentials.accessUrl);
+    const username = url.username;
+    const password = url.password;
+
+    // Remove credentials from URL
+    url.username = '';
+    url.password = '';
+
+    // SimpleFin requires /accounts endpoint
+    const accountsUrl = url.toString().replace(/\/$/, '') + '/accounts';
+    const finalUrl = new URL(accountsUrl);
 
     // Add query parameters for date filtering if needed
     if (sinceDate) {
       const startTimestamp = Math.floor(sinceDate.getTime() / 1000);
-      url.searchParams.set('start-date', startTimestamp.toString());
+      finalUrl.searchParams.set('start-date', startTimestamp.toString());
     }
 
-    const response = await fetch(url.toString(), {
+    // Create Basic Auth header
+    const authHeader = 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64');
+
+    const response = await fetch(finalUrl.toString(), {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Authorization': authHeader,
       },
     });
 
@@ -105,6 +119,81 @@ export async function fetchSimpleFinData(
 }
 
 /**
+ * Claim a SimpleFIN setup token to get an Access URL
+ *
+ * @param setupToken - Base64-encoded setup token from SimpleFin Bridge
+ * @returns Access URL that contains credentials for future API calls
+ * @throws {Error} If setup token is invalid or has already been claimed
+ *
+ * @example
+ * const accessUrl = await claimSetupToken('aHR0cHM6Ly8uLi4=');
+ * // Returns: 'https://username:password@bridge.simplefin.org/simplefin/...'
+ */
+export async function claimSetupToken(setupToken: string): Promise<string> {
+  try {
+    // Decode the base64 setup token to get the claim URL
+    const claimUrl = Buffer.from(setupToken, 'base64').toString('utf-8');
+    console.log('Decoded claim URL:', claimUrl);
+
+    // Validate it's a valid URL
+    new URL(claimUrl);
+
+    // POST to the claim URL with Content-Length: 0
+    console.log('Claiming setup token...');
+    const response = await fetch(claimUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Length': '0',
+      },
+      signal: AbortSignal.timeout(10000), // 10 second timeout
+    });
+
+    console.log('Claim response status:', response.status, response.statusText);
+
+    if (!response.ok) {
+      if (response.status === 403 || response.status === 404) {
+        throw new Error('Setup token is invalid or has already been claimed. Please generate a new one.');
+      }
+      throw new Error(`Failed to claim setup token: ${response.status} ${response.statusText}`);
+    }
+
+    // The response body contains the access URL
+    const accessUrl = await response.text();
+    console.log('Received access URL length:', accessUrl.length);
+    console.log('Access URL starts with http:', accessUrl.startsWith('http'));
+
+    if (!accessUrl || !accessUrl.startsWith('http')) {
+      throw new Error('Invalid response from SimpleFin. Please try again.');
+    }
+
+    return accessUrl.trim();
+  } catch (error) {
+    // Re-throw known errors
+    if (error instanceof Error && error.message.includes('Setup token')) {
+      throw error;
+    }
+
+    // Invalid base64
+    if (error instanceof Error && error.message.includes('base64')) {
+      throw new Error('Invalid setup token format. Please copy the entire token from SimpleFin.');
+    }
+
+    // Invalid URL after decoding
+    if (error instanceof TypeError && error.message.includes('URL')) {
+      throw new Error('Setup token does not contain a valid URL. Please generate a new token.');
+    }
+
+    // Network error
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('Could not connect to SimpleFin. Please check your internet connection.');
+    }
+
+    // Generic error
+    throw new Error(`Failed to claim setup token: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
  * Test SimpleFIN credentials without storing them
  *
  * @param accessUrl - SimpleFin access URL to test
@@ -118,27 +207,49 @@ export async function fetchSimpleFinData(
  */
 export async function testSimpleFinConnection(accessUrl: string): Promise<boolean> {
   try {
-    // Validate URL format
+    // Parse URL and extract credentials
     const url = new URL(accessUrl);
+    const username = url.username;
+    const password = url.password;
+
+    // Remove credentials from URL
+    url.username = '';
+    url.password = '';
+
+    // SimpleFin requires /accounts endpoint
+    const accountsUrl = url.toString().replace(/\/$/, '') + '/accounts';
+
+    console.log('Testing connection to:', accountsUrl);
+
+    // Create Basic Auth header
+    const authHeader = 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64');
 
     // Make a simple request to test authentication
-    const response = await fetch(url.toString(), {
+    const response = await fetch(accountsUrl, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Authorization': authHeader,
       },
       // Add timeout to avoid hanging on bad connections
       signal: AbortSignal.timeout(10000), // 10 second timeout
     });
 
+    console.log('Response status:', response.status, response.statusText);
+    console.log('Response ok:', response.ok);
+
     return response.ok;
   } catch (error) {
+    console.error('testSimpleFinConnection error:', error);
+
     // Invalid URL format
     if (error instanceof TypeError && error.message.includes('URL')) {
+      console.error('Invalid URL format');
       return false;
     }
 
     // Network error or timeout
+    console.error('Network error or timeout');
     return false;
   }
 }

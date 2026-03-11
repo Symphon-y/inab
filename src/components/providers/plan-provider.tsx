@@ -32,10 +32,12 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     try {
       const response = await fetch('/api/plans');
       const data = await response.json();
-      setPlans(data);
-      return data;
+      const plansArray = Array.isArray(data) ? data : [];
+      setPlans(plansArray);
+      return plansArray;
     } catch (error) {
       console.error('Failed to fetch plans:', error);
+      setPlans([]);
       return [];
     }
   };
@@ -85,7 +87,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     router.refresh();
   };
 
-  const activePlan = plans.find(p => p.id === activePlanId) || null;
+  const activePlan = Array.isArray(plans) ? plans.find(p => p.id === activePlanId) || null : null;
 
   return (
     <PlanContext.Provider value={{

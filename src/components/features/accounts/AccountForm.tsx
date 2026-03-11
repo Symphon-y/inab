@@ -18,6 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SimpleFinConnectionForm } from './SimpleFinConnectionForm';
 import type { Account, AccountType } from '@/db/schema';
 
 interface AccountFormProps {
@@ -50,6 +52,7 @@ export function AccountForm({ open, onOpenChange, account, onSubmit }: AccountFo
   const [accountType, setAccountType] = useState<AccountType>(account?.accountType ?? 'checking');
   const [balance, setBalance] = useState(account ? (account.balance / 100).toFixed(2) : '0.00');
   const [isOnBudget, setIsOnBudget] = useState(account?.isOnBudget ?? true);
+  const [activeTab, setActiveTab] = useState<'manual' | 'simplefin'>('manual');
 
   const isEditing = !!account;
 
@@ -75,6 +78,78 @@ export function AccountForm({ open, onOpenChange, account, onSubmit }: AccountFo
     }
   };
 
+  const handleSimpleFinAccountSelected = async (data: {
+    accessUrl: string;
+    externalAccountId: string;
+    accountName: string;
+    accountType: AccountType;
+    balance: number;
+    syncStartDate?: string;
+  }) => {
+    setLoading(true);
+
+    try {
+      // First, create the account
+      const accountResponse = await fetch('/api/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.accountName,
+          accountType: data.accountType,
+          balance: Math.round(data.balance), // Ensure it's an integer (SimpleFin returns cents)
+          isOnBudget,
+        }),
+      });
+
+      if (!accountResponse.ok) {
+        const errorData = await accountResponse.json();
+        console.error('Account creation failed:', errorData);
+        throw new Error(errorData.error || 'Failed to create account');
+      }
+
+      const newAccount = await accountResponse.json();
+
+      // Then, create the connection
+      const connectionResponse = await fetch(`/api/accounts/${newAccount.id}/connect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: 'simplefin',
+          credentials: { accessUrl: data.accessUrl },
+          externalAccountId: data.externalAccountId,
+          syncStartDate: data.syncStartDate,
+        }),
+      });
+
+      if (!connectionResponse.ok) {
+        const errorData = await connectionResponse.json();
+        console.error('Connection creation failed:', errorData);
+        throw new Error(errorData.error || 'Failed to create connection');
+      }
+
+      // Optionally, trigger initial sync
+      await fetch(`/api/accounts/${newAccount.id}/sync`, {
+        method: 'POST',
+      });
+
+      onOpenChange(false);
+      // Reset form
+      setName('');
+      setAccountType('checking');
+      setBalance('0.00');
+      setIsOnBudget(true);
+      setActiveTab('manual');
+
+      // Refresh the page to show new account
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to create SimpleFin account:', error);
+      alert('Failed to create account. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -87,82 +162,150 @@ export function AccountForm({ open, onOpenChange, account, onSubmit }: AccountFo
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="name" className="text-sm font-medium">
-              Account Name
-            </label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Main Checking"
-              required
-            />
-          </div>
+        {!isEditing ? (
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'manual' | 'simplefin')}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="manual">Manual Account</TabsTrigger>
+              <TabsTrigger value="simplefin">Connect SimpleFin</TabsTrigger>
+            </TabsList>
 
-          <div className="space-y-2">
-            <label htmlFor="type" className="text-sm font-medium">
-              Account Type
-            </label>
-            <Select value={accountType} onValueChange={(v) => setAccountType(v as AccountType)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select account type" />
-              </SelectTrigger>
-              <SelectContent>
-                {accountTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+            <TabsContent value="manual" className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="name" className="text-sm font-medium">
+                    Account Name
+                  </label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g., Main Checking"
+                    required
+                  />
+                </div>
 
-          {!isEditing && (
+                <div className="space-y-2">
+                  <label htmlFor="type" className="text-sm font-medium">
+                    Account Type
+                  </label>
+                  <Select value={accountType} onValueChange={(v) => setAccountType(v as AccountType)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select account type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {accountTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="balance" className="text-sm font-medium">
+                    Current Balance
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                      $
+                    </span>
+                    <Input
+                      id="balance"
+                      type="number"
+                      step="0.01"
+                      value={balance}
+                      onChange={(e) => setBalance(e.target.value)}
+                      className="pl-7"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isOnBudget"
+                    checked={isOnBudget}
+                    onChange={(e) => setIsOnBudget(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  <label htmlFor="isOnBudget" className="text-sm">
+                    Track in budget (uncheck for tracking-only accounts)
+                  </label>
+                </div>
+
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={loading || !name}>
+                    {loading ? 'Saving...' : 'Add Account'}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="simplefin" className="space-y-4">
+              <SimpleFinConnectionForm onAccountSelected={handleSimpleFinAccountSelected} />
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="balance" className="text-sm font-medium">
-                Current Balance
+              <label htmlFor="name" className="text-sm font-medium">
+                Account Name
               </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  $
-                </span>
-                <Input
-                  id="balance"
-                  type="number"
-                  step="0.01"
-                  value={balance}
-                  onChange={(e) => setBalance(e.target.value)}
-                  className="pl-7"
-                  placeholder="0.00"
-                />
-              </div>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g., Main Checking"
+                required
+              />
             </div>
-          )}
 
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="isOnBudget"
-              checked={isOnBudget}
-              onChange={(e) => setIsOnBudget(e.target.checked)}
-              className="rounded border-gray-300"
-            />
-            <label htmlFor="isOnBudget" className="text-sm">
-              Track in budget (uncheck for tracking-only accounts)
-            </label>
-          </div>
+            <div className="space-y-2">
+              <label htmlFor="type" className="text-sm font-medium">
+                Account Type
+              </label>
+              <Select value={accountType} onValueChange={(v) => setAccountType(v as AccountType)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select account type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accountTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading || !name}>
-              {loading ? 'Saving...' : isEditing ? 'Save Changes' : 'Add Account'}
-            </Button>
-          </DialogFooter>
-        </form>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="isOnBudget"
+                checked={isOnBudget}
+                onChange={(e) => setIsOnBudget(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <label htmlFor="isOnBudget" className="text-sm">
+                Track in budget (uncheck for tracking-only accounts)
+              </label>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading || !name}>
+                {loading ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );
