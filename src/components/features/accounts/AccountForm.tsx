@@ -53,6 +53,7 @@ export function AccountForm({ open, onOpenChange, account, onSubmit }: AccountFo
   const [balance, setBalance] = useState(account ? (account.balance / 100).toFixed(2) : '0.00');
   const [isOnBudget, setIsOnBudget] = useState(account?.isOnBudget ?? true);
   const [activeTab, setActiveTab] = useState<'manual' | 'simplefin'>('manual');
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
 
   const isEditing = !!account;
 
@@ -78,73 +79,101 @@ export function AccountForm({ open, onOpenChange, account, onSubmit }: AccountFo
     }
   };
 
-  const handleSimpleFinAccountSelected = async (data: {
+  const handleSimpleFinAccountsSelected = async (data: {
     accessUrl: string;
-    externalAccountId: string;
-    accountName: string;
-    accountType: AccountType;
-    balance: number;
+    accounts: Array<{
+      externalAccountId: string;
+      accountName: string;
+      accountType: AccountType;
+      balance: number;
+    }>;
     syncStartDate?: string;
   }) => {
     setLoading(true);
 
+    const total = data.accounts.length;
+    let completed = 0;
+    const results = { success: 0, failed: 0, errors: [] as string[] };
+
+    setImportProgress({ current: 0, total });
+
     try {
-      // First, create the account
-      const accountResponse = await fetch('/api/accounts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: data.accountName,
-          accountType: data.accountType,
-          balance: Math.round(data.balance), // Ensure it's an integer (SimpleFin returns cents)
-          isOnBudget,
-        }),
-      });
+      for (const accountData of data.accounts) {
+        try {
+          // Create account
+          const accountResponse = await fetch('/api/accounts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: accountData.accountName,
+              accountType: accountData.accountType,
+              balance: Math.round(accountData.balance),
+              isOnBudget,
+            }),
+          });
 
-      if (!accountResponse.ok) {
-        const errorData = await accountResponse.json();
-        console.error('Account creation failed:', errorData);
-        throw new Error(errorData.error || 'Failed to create account');
+          if (!accountResponse.ok) {
+            const errorData = await accountResponse.json();
+            throw new Error(errorData.error || 'Failed to create account');
+          }
+
+          const newAccount = await accountResponse.json();
+
+          // Create connection
+          await fetch(`/api/accounts/${newAccount.id}/connect`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              provider: 'simplefin',
+              credentials: { accessUrl: data.accessUrl },
+              externalAccountId: accountData.externalAccountId,
+              syncStartDate: data.syncStartDate,
+            }),
+          });
+
+          // Trigger sync
+          await fetch(`/api/accounts/${newAccount.id}/sync`, {
+            method: 'POST',
+          });
+
+          results.success++;
+        } catch (error) {
+          results.failed++;
+          results.errors.push(
+            `${accountData.accountName}: ${error instanceof Error ? error.message : 'Unknown error'}`
+          );
+          console.error(`Failed to import account ${accountData.accountName}:`, error);
+        }
+
+        completed++;
+        setImportProgress({ current: completed, total });
       }
 
-      const newAccount = await accountResponse.json();
-
-      // Then, create the connection
-      const connectionResponse = await fetch(`/api/accounts/${newAccount.id}/connect`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          provider: 'simplefin',
-          credentials: { accessUrl: data.accessUrl },
-          externalAccountId: data.externalAccountId,
-          syncStartDate: data.syncStartDate,
-        }),
-      });
-
-      if (!connectionResponse.ok) {
-        const errorData = await connectionResponse.json();
-        console.error('Connection creation failed:', errorData);
-        throw new Error(errorData.error || 'Failed to create connection');
-      }
-
-      // Optionally, trigger initial sync
-      await fetch(`/api/accounts/${newAccount.id}/sync`, {
-        method: 'POST',
-      });
-
+      // Close dialog and reset form
       onOpenChange(false);
-      // Reset form
       setName('');
       setAccountType('checking');
       setBalance('0.00');
       setIsOnBudget(true);
       setActiveTab('manual');
+      setImportProgress({ current: 0, total: 0 });
 
-      // Refresh the page to show new account
+      // Show summary
+      if (results.success > 0) {
+        const message = `Successfully imported ${results.success} account${results.success !== 1 ? 's' : ''}${
+          results.failed > 0 ? `. ${results.failed} failed.` : ''
+        }`;
+        alert(message);
+      } else if (results.failed > 0) {
+        alert(`Failed to import all accounts. Please check your connection and try again.`);
+      }
+
+      // Reload to refresh account list
       window.location.reload();
     } catch (error) {
-      console.error('Failed to create SimpleFin account:', error);
-      alert('Failed to create account. Please try again.');
+      console.error('Failed to import SimpleFin accounts:', error);
+      alert('Failed to import accounts. Please try again.');
+      setImportProgress({ current: 0, total: 0 });
     } finally {
       setLoading(false);
     }
@@ -161,6 +190,23 @@ export function AccountForm({ open, onOpenChange, account, onSubmit }: AccountFo
               : 'Enter the details for your new account.'}
           </DialogDescription>
         </DialogHeader>
+
+        {loading && importProgress.total > 0 && (
+          <div className="space-y-2 pb-4">
+            <div className="flex justify-between text-sm">
+              <span>Importing accounts...</span>
+              <span>
+                {importProgress.current} / {importProgress.total}
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-primary h-2 rounded-full transition-all"
+                style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {!isEditing ? (
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'manual' | 'simplefin')}>
@@ -247,7 +293,7 @@ export function AccountForm({ open, onOpenChange, account, onSubmit }: AccountFo
             </TabsContent>
 
             <TabsContent value="simplefin" className="space-y-4">
-              <SimpleFinConnectionForm onAccountSelected={handleSimpleFinAccountSelected} />
+              <SimpleFinConnectionForm onAccountSelected={handleSimpleFinAccountsSelected} />
             </TabsContent>
           </Tabs>
         ) : (

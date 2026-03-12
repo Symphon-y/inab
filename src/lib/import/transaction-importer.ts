@@ -28,14 +28,15 @@ export interface ImportResult {
 }
 
 /**
- * Generate unique import ID combining provider and external ID
+ * Generate unique import ID combining provider, account, and external ID
  * @param provider - The provider name (simplefin, manual)
+ * @param externalAccountId - Provider's account ID
  * @param externalId - Provider's transaction ID
  * @returns Unique import ID for deduplication
- * @example generateImportId('simplefin', 'txn-12345') => 'simplefin:txn-12345'
+ * @example generateImportId('simplefin', 'acc-123', 'txn-12345') => 'simplefin:acc-123:txn-12345'
  */
-function generateImportId(provider: string, externalId: string): string {
-  return `${provider}:${externalId}`;
+function generateImportId(provider: string, externalAccountId: string, externalId: string): string {
+  return `${provider}:${externalAccountId}:${externalId}`;
 }
 
 /**
@@ -127,7 +128,7 @@ export async function importTransactionsForAccount(
 
     for (const txn of importedTransactions) {
       try {
-        const importId = generateImportId(connection.provider, txn.externalId);
+        const importId = generateImportId(connection.provider, connection.externalAccountId, txn.externalId);
 
         // Check if transaction already exists
         const [existing] = await db

@@ -53,7 +53,8 @@ export async function updateBudgetActivity(categoryId: string, year: number, mon
         gte(transactions.date, monthStart),
         lt(transactions.date, monthEnd),
         eq(accounts.isOnBudget, true), // Only count transactions in budget accounts
-        isNull(transactions.deletedAt)
+        isNull(transactions.deletedAt),
+        isNull(accounts.deletedAt)
       )
     );
 

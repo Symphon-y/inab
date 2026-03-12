@@ -23,12 +23,15 @@ export async function GET() {
         const groupCategories = await db
           .select()
           .from(categories)
-          .where(eq(categories.categoryGroupId, group.id))
+          .where(and(
+            eq(categories.categoryGroupId, group.id),
+            isNull(categories.deletedAt)
+          ))
           .orderBy(asc(categories.sortOrder));
 
         return {
           ...group,
-          categories: groupCategories.filter((c) => !c.deletedAt),
+          categories: groupCategories,
         };
       })
     );

@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { db } from '@/db';
 import { plans } from '@/db/schema';
-import { eq, isNull } from 'drizzle-orm';
+import { eq, isNull, and } from 'drizzle-orm';
 
 /**
  * Get the active plan ID from cookie or default plan
@@ -19,7 +19,7 @@ export async function getActivePlanId(): Promise<string> {
   const [defaultPlan] = await db
     .select({ id: plans.id })
     .from(plans)
-    .where(eq(plans.isDefault, true))
+    .where(and(eq(plans.isDefault, true), isNull(plans.deletedAt)))
     .limit(1);
 
   if (defaultPlan) {

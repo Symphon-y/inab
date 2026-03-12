@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { budgetAllocations, categories } from '@/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, isNull } from 'drizzle-orm';
 import { calculateCarryover } from '@/lib/budget';
 
 export async function GET(request: Request) {
@@ -29,9 +29,15 @@ export async function GET(request: Request) {
         activity: budgetAllocations.activity,
         available: budgetAllocations.available,
         carryover: budgetAllocations.carryover,
+        createdAt: budgetAllocations.createdAt,
+        updatedAt: budgetAllocations.updatedAt,
       })
       .from(budgetAllocations)
-      .where(eq(budgetAllocations.month, monthDate));
+      .innerJoin(categories, eq(budgetAllocations.categoryId, categories.id))
+      .where(and(
+        eq(budgetAllocations.month, monthDate),
+        isNull(categories.deletedAt)
+      ));
 
     return NextResponse.json(allocations);
   } catch (error) {
@@ -52,6 +58,19 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: { code: 'INVALID_PARAMS', message: 'categoryId, year, month, and assigned are required' } },
         { status: 400 }
+      );
+    }
+
+    // Validate category exists and is not deleted
+    const [category] = await db
+      .select()
+      .from(categories)
+      .where(and(eq(categories.id, categoryId), isNull(categories.deletedAt)));
+
+    if (!category) {
+      return NextResponse.json(
+        { error: { code: 'NOT_FOUND', message: 'Category not found or deleted' } },
+        { status: 404 }
       );
     }
 

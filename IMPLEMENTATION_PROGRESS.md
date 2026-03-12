@@ -509,4 +509,60 @@ Add user interface for SimpleFin bank connections. Backend is complete - this ph
 
 ---
 
-**Last Updated:** 2026-03-11 (Phases 1-6 complete, Phase 7 in progress)
+## Phase 7.7: Multi-Account Import Enhancement ⏳
+
+### Goal
+Allow users to import multiple SimpleFin accounts at once from a single setup token, eliminating the need to enter credentials repeatedly for each account.
+
+### Current Limitation
+Users must enter setup token, select one account, wait for reload, then repeat for each additional account.
+
+### Enhancement
+Users enter setup token once, select multiple accounts (with "Select All" option), and import all in one flow with progress tracking.
+
+### Tasks
+
+#### UI Component Updates
+- [ ] Update SimpleFinConnectionForm state management
+  - [ ] Change `selectedAccountId` to `selectedAccountIds: string[]`
+  - [ ] Add `toggleAccountSelection` function
+  - [ ] Add `handleSelectAll` function
+- [ ] Replace dropdown with checkbox list
+  - [ ] Add "Select All" checkbox with account count
+  - [ ] Create checkbox list with account details
+  - [ ] Add selection summary display
+- [ ] Update button and validation
+  - [ ] Update button text to show selection count
+  - [ ] Update `isReadyToSelect` validation
+  - [ ] Rename `handleSelectAccount` to `handleSelectAccounts`
+
+#### Batch Processing Logic
+- [ ] Update AccountForm handler
+  - [ ] Rename `handleSimpleFinAccountSelected` to `handleSimpleFinAccountsSelected`
+  - [ ] Accept array of accounts in function signature
+  - [ ] Implement sequential batch import loop
+  - [ ] Add error handling for partial failures
+  - [ ] Track success/failure counts
+- [ ] Add progress tracking
+  - [ ] Add `importProgress` state
+  - [ ] Update progress during import loop
+  - [ ] Display progress bar UI
+  - [ ] Show completion summary
+
+#### Type Updates
+- [ ] Update `SimpleFinConnectionFormProps` interface
+  - [ ] Change callback signature to accept array
+
+#### Testing
+- [ ] Test single account selection (backward compatibility)
+- [ ] Test multi-account selection (2-3 accounts)
+- [ ] Test "Select All" functionality
+- [ ] Test error handling for partial failures
+- [ ] Test with 10+ accounts (performance)
+- [ ] Verify all connections and syncs work
+
+**Phase 7.7 Completion:** ⬜ 0/20 tasks
+
+---
+
+**Last Updated:** 2026-03-11 (Phases 1-6 complete, Phase 7 and 7.7 in progress)

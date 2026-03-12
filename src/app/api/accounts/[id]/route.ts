@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { accounts } from '@/db/schema';
-import { eq, and, isNull } from 'drizzle-orm';
+import { accounts, transactions, accountConnections } from '@/db/schema';
+import { eq, and, isNull, sql } from 'drizzle-orm';
+import { updateBudgetActivityForTransaction } from '@/lib/budget';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -72,12 +73,14 @@ export async function DELETE(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params;
 
-    // Soft delete
+    const now = new Date();
+
+    // Soft delete account
     const [account] = await db
       .update(accounts)
       .set({
-        deletedAt: new Date(),
-        updatedAt: new Date(),
+        deletedAt: now,
+        updatedAt: now,
       })
       .where(and(eq(accounts.id, id), isNull(accounts.deletedAt)))
       .returning();
@@ -87,6 +90,46 @@ export async function DELETE(request: Request, { params }: RouteParams) {
         { error: { code: 'NOT_FOUND', message: 'Account not found' } },
         { status: 404 }
       );
+    }
+
+    // Get all unique category/date combinations from transactions before deleting
+    const deletedTransactions = await db
+      .select({
+        categoryId: transactions.categoryId,
+        date: transactions.date,
+      })
+      .from(transactions)
+      .where(and(
+        eq(transactions.accountId, id),
+        sql`${transactions.categoryId} IS NOT NULL`
+      ));
+
+    // Cascade soft delete all transactions for this account
+    await db
+      .update(transactions)
+      .set({
+        deletedAt: now,
+        updatedAt: now,
+      })
+      .where(and(eq(transactions.accountId, id), isNull(transactions.deletedAt)));
+
+    // Cascade soft delete all account connections for this account
+    await db
+      .update(accountConnections)
+      .set({
+        deletedAt: now,
+        updatedAt: now,
+      })
+      .where(and(eq(accountConnections.accountId, id), isNull(accountConnections.deletedAt)));
+
+    // Recalculate budget activity for each affected category/month
+    for (const txn of deletedTransactions) {
+      if (txn.categoryId && txn.date) {
+        await updateBudgetActivityForTransaction(
+          txn.categoryId,
+          txn.date
+        );
+      }
     }
 
     return NextResponse.json({ success: true, id });

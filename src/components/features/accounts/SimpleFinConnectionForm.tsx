@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle2, XCircle, Loader2, ExternalLink } from 'lucide-react';
 import type { AccountType } from '@/db/schema';
@@ -18,10 +17,12 @@ interface SimpleFinAccount {
 interface SimpleFinConnectionFormProps {
   onAccountSelected: (data: {
     accessUrl: string;
-    externalAccountId: string;
-    accountName: string;
-    accountType: AccountType;
-    balance: number;
+    accounts: Array<{
+      externalAccountId: string;
+      accountName: string;
+      accountType: AccountType;
+      balance: number;
+    }>;
     syncStartDate?: string;
   }) => void;
 }
@@ -32,7 +33,7 @@ export function SimpleFinConnectionForm({ onAccountSelected }: SimpleFinConnecti
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [availableAccounts, setAvailableAccounts] = useState<SimpleFinAccount[]>([]);
-  const [selectedAccountId, setSelectedAccountId] = useState('');
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [syncStartDate, setSyncStartDate] = useState('');
 
   const handleTestConnection = async () => {
@@ -70,24 +71,38 @@ export function SimpleFinConnectionForm({ onAccountSelected }: SimpleFinConnecti
     }
   };
 
-  const handleSelectAccount = () => {
-    const selected = availableAccounts.find((acc) => acc.id === selectedAccountId);
-    if (!selected) return;
+  const toggleAccountSelection = (accountId: string) => {
+    setSelectedAccountIds((prev) =>
+      prev.includes(accountId) ? prev.filter((id) => id !== accountId) : [...prev, accountId]
+    );
+  };
 
-    // Map SimpleFin account type to our AccountType
-    const accountType = mapSimpleFinType(selected.type);
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedAccountIds(availableAccounts.map((acc) => acc.id));
+    } else {
+      setSelectedAccountIds([]);
+    }
+  };
+
+  const handleSelectAccounts = () => {
+    const selectedAccounts = availableAccounts
+      .filter((acc) => selectedAccountIds.includes(acc.id))
+      .map((acc) => ({
+        externalAccountId: acc.id,
+        accountName: acc.name,
+        accountType: mapSimpleFinType(acc.type),
+        balance: acc.balance,
+      }));
 
     onAccountSelected({
       accessUrl,
-      externalAccountId: selected.id,
-      accountName: selected.name,
-      accountType,
-      balance: selected.balance,
+      accounts: selectedAccounts,
       syncStartDate: syncStartDate || undefined,
     });
   };
 
-  const isReadyToSelect = testStatus === 'success' && selectedAccountId;
+  const isReadyToSelect = testStatus === 'success' && selectedAccountIds.length > 0;
 
   return (
     <div className="space-y-4">
@@ -154,21 +169,47 @@ export function SimpleFinConnectionForm({ onAccountSelected }: SimpleFinConnecti
       {testStatus === 'success' && availableAccounts.length > 0 && (
         <>
           <div className="space-y-2">
-            <label htmlFor="account" className="text-sm font-medium">
-              Select SimpleFin Account
-            </label>
-            <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose an account" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableAccounts.map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
-                    {account.name} - ${(account.balance / 100).toFixed(2)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <label className="text-sm font-medium">Select SimpleFin Accounts</label>
+
+            {/* Select All checkbox */}
+            <div className="flex items-center gap-2 p-2 border-b">
+              <input
+                type="checkbox"
+                id="selectAll"
+                checked={selectedAccountIds.length === availableAccounts.length && availableAccounts.length > 0}
+                onChange={handleSelectAll}
+                className="rounded border-gray-300"
+              />
+              <label htmlFor="selectAll" className="text-sm font-medium cursor-pointer">
+                Select All ({availableAccounts.length} account{availableAccounts.length !== 1 ? 's' : ''})
+              </label>
+            </div>
+
+            {/* Account list with checkboxes */}
+            <div className="space-y-2 max-h-60 overflow-y-auto border rounded-md p-2">
+              {availableAccounts.map((account) => (
+                <div key={account.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
+                  <input
+                    type="checkbox"
+                    id={account.id}
+                    checked={selectedAccountIds.includes(account.id)}
+                    onChange={() => toggleAccountSelection(account.id)}
+                    className="rounded border-gray-300"
+                  />
+                  <label htmlFor={account.id} className="flex-1 text-sm cursor-pointer">
+                    <div className="font-medium">{account.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      Balance: ${(account.balance / 100).toFixed(2)} • Type: {account.type || 'Unknown'}
+                    </div>
+                  </label>
+                </div>
+              ))}
+            </div>
+
+            {/* Selection summary */}
+            <div className="text-sm text-muted-foreground">
+              {selectedAccountIds.length} of {availableAccounts.length} account{availableAccounts.length !== 1 ? 's' : ''} selected
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -189,11 +230,11 @@ export function SimpleFinConnectionForm({ onAccountSelected }: SimpleFinConnecti
 
           <Button
             type="button"
-            onClick={handleSelectAccount}
+            onClick={handleSelectAccounts}
             disabled={!isReadyToSelect}
             className="w-full"
           >
-            Connect Account
+            Connect {selectedAccountIds.length} Account{selectedAccountIds.length !== 1 ? 's' : ''}
           </Button>
         </>
       )}

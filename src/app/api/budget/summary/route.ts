@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { budgetAllocations, transactions, accounts } from '@/db/schema';
+import { budgetAllocations, transactions, accounts, categories } from '@/db/schema';
 import { eq, and, gte, lt, sql, isNull } from 'drizzle-orm';
 
 export async function GET(request: Request) {
@@ -26,7 +26,11 @@ export async function GET(request: Request) {
         total: sql<number>`COALESCE(SUM(${budgetAllocations.assigned}), 0)`,
       })
       .from(budgetAllocations)
-      .where(eq(budgetAllocations.month, monthStart));
+      .innerJoin(categories, eq(budgetAllocations.categoryId, categories.id))
+      .where(and(
+        eq(budgetAllocations.month, monthStart),
+        isNull(categories.deletedAt)
+      ));
 
     const totalAssigned = Number(assignedResult[0]?.total || 0);
 
@@ -58,7 +62,11 @@ export async function GET(request: Request) {
         total: sql<number>`COALESCE(SUM(${budgetAllocations.activity}), 0)`,
       })
       .from(budgetAllocations)
-      .where(eq(budgetAllocations.month, monthStart));
+      .innerJoin(categories, eq(budgetAllocations.categoryId, categories.id))
+      .where(and(
+        eq(budgetAllocations.month, monthStart),
+        isNull(categories.deletedAt)
+      ));
 
     const totalActivity = Number(activityResult[0]?.total || 0);
 
