@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { formatCurrency } from '@/lib/currency';
 import { cn } from '@/lib/utils';
+import { useBudgetRefresh } from '@/contexts/BudgetRefreshContext';
 
 interface ReadyToAssignCardProps {
   year: number;
@@ -25,6 +26,7 @@ export function ReadyToAssignCard({ year, month, refreshTrigger }: ReadyToAssign
     totalActivity: 0,
   });
   const [loading, setLoading] = useState(true);
+  const { refreshTrigger: contextRefreshTrigger } = useBudgetRefresh();
 
   const fetchSummary = useCallback(async () => {
     try {
@@ -45,7 +47,7 @@ export function ReadyToAssignCard({ year, month, refreshTrigger }: ReadyToAssign
 
   useEffect(() => {
     fetchSummary();
-  }, [fetchSummary, refreshTrigger]);
+  }, [fetchSummary, refreshTrigger, contextRefreshTrigger]);
 
   const getReadyToAssignColor = (amount: number) => {
     if (amount > 0) return 'text-green-600';

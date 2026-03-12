@@ -24,6 +24,7 @@ import { AccountItem } from '@/components/features/accounts';
 import { AccountForm, AccountFormData } from '@/components/features/accounts';
 import { PlanSwitcher } from '@/components/features/plans';
 import { useAccountRefresh } from '@/hooks/useAccountRefresh';
+import { useBudgetRefresh } from '@/contexts/BudgetRefreshContext';
 import type { Account } from '@/db/schema';
 import type { AccountWithConnection } from '@/types/account';
 
@@ -41,6 +42,7 @@ export function Sidebar({ className }: SidebarProps) {
   const [addingToBudget, setAddingToBudget] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { refreshAccounts, isRefreshing } = useAccountRefresh();
+  const { triggerRefresh } = useBudgetRefresh();
 
   const navItems = [
     { label: 'Budget', href: '/budget', icon: PiggyBank },
@@ -91,6 +93,10 @@ export function Sidebar({ className }: SidebarProps) {
 
     if (res.ok) {
       setAccounts((prev) => prev.filter((a) => a.id !== account.id));
+
+      // Trigger budget refresh so Ready to Assign updates
+      triggerRefresh();
+
       // If we're on the deleted account's page, redirect to budget
       if (pathname === `/accounts/${account.id}`) {
         router.push('/budget');
@@ -112,6 +118,11 @@ export function Sidebar({ className }: SidebarProps) {
         setAccounts((prev) =>
           prev.map((a) => (a.id === editingAccount.id ? updated : a))
         );
+
+        // Trigger refresh if isOnBudget status changed
+        if (updated.isOnBudget !== editingAccount.isOnBudget) {
+          triggerRefresh();
+        }
       }
     } else {
       // Create new account
@@ -127,6 +138,11 @@ export function Sidebar({ className }: SidebarProps) {
       if (res.ok) {
         const newAccount = await res.json();
         setAccounts((prev) => [...prev, newAccount]);
+
+        // Trigger refresh if new account is on budget
+        if (newAccount.isOnBudget) {
+          triggerRefresh();
+        }
       }
     }
   };
