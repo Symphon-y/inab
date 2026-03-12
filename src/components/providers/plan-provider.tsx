@@ -28,7 +28,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const fetchPlans = async () => {
+  const fetchPlans = async (): Promise<Plan[]> => {
     try {
       const response = await fetch('/api/plans');
       const data = await response.json();
@@ -40,6 +40,10 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       setPlans([]);
       return [];
     }
+  };
+
+  const refreshPlans = async (): Promise<void> => {
+    await fetchPlans();
   };
 
   useEffect(() => {
@@ -95,7 +99,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       activePlan,
       plans,
       setActivePlanId,
-      refreshPlans: fetchPlans,
+      refreshPlans,
       loading
     }}>
       {children}

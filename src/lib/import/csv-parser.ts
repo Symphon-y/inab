@@ -45,7 +45,7 @@ export async function parseCSV(fileContent: string): Promise<CSVTransaction[]> {
     }
 
     // Get the first record to check column names
-    const firstRecord = records[0];
+    const firstRecord = records[0] as Record<string, unknown>;
     const columns = Object.keys(firstRecord);
 
     // Find date column (case-insensitive)
