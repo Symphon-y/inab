@@ -4,6 +4,7 @@ import { transactions, accounts } from '@/db/schema';
 import { eq, and, isNull, sql } from 'drizzle-orm';
 import { parseCSV } from '@/lib/import/csv-parser';
 import { updateBudgetActivityForTransaction } from '@/lib/budget';
+import { dollarsToCents } from '@/lib/currency';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -49,7 +50,7 @@ export async function POST(request: Request, { params }: RouteParams) {
           errors.push(`Invalid amount: ${txn.amount}`);
           continue;
         }
-        const amount = Math.round(amountFloat * 100);
+        const amount = dollarsToCents(amountFloat);
 
         // Generate import ID based on date + amount + payee (for deduplication)
         const importId = `csv:${accountId}:${date.toISOString()}:${amount}:${txn.payee}`;

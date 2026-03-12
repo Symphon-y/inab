@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { dollarsToCents } from '@/lib/currency';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -65,7 +66,7 @@ export function AccountForm({ open, onOpenChange, account, onSubmit }: AccountFo
       await onSubmit({
         name,
         accountType,
-        balance: Math.round(parseFloat(balance) * 100),
+        balance: dollarsToCents(balance),
         isOnBudget,
       });
       onOpenChange(false);

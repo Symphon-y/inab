@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { claimSetupToken, testSimpleFinConnection } from '@/lib/bank-integrations/simplefin';
+import { parseSimpleFinAmount } from '@/lib/currency';
 
 export async function POST(request: Request) {
   try {
@@ -85,7 +86,7 @@ export async function POST(request: Request) {
       const accounts = (data.accounts || []).map((acc: any) => ({
         id: acc.id,
         name: acc.name,
-        balance: Math.round(acc.balance), // Ensure integer (cents)
+        balance: parseSimpleFinAmount(acc.balance), // Convert SimpleFin dollars to cents
         type: acc.type,
       }));
 

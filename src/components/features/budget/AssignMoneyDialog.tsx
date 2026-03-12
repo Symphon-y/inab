@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { dollarsToCents } from '@/lib/currency';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -48,7 +49,7 @@ export function AssignMoneyDialog({
 
     setLoading(true);
     try {
-      const amountInCents = Math.round(parseFloat(amount) * 100);
+      const amountInCents = dollarsToCents(amount);
       await onSubmit(category.id, amountInCents);
       onOpenChange(false);
     } finally {

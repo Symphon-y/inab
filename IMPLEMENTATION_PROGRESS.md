@@ -565,4 +565,196 @@ Users enter setup token once, select multiple accounts (with "Select All" option
 
 ---
 
-**Last Updated:** 2026-03-11 (Phases 1-6 complete, Phase 7 and 7.7 in progress)
+**Last Updated:** 2026-03-12 (Phases 1-6 complete, Phase 7 and 7.7 in progress)
+
+---
+
+## Currency Standardization & SimpleFin Bug Fix ✅
+
+**Implementation Date:** 2026-03-12
+**Status:** ✅ COMPLETE
+**Issue:** SimpleFin transactions displaying amounts 100x too small (e.g., $1336.89 showing as $13.37)
+**Root Cause:** SimpleFin API sends amounts in dollars, but code treated them as cents
+
+**Reference Plan:** `.claude/plans/calm-sparking-music.md`
+
+### Problem Summary
+- SimpleFin API returns amounts in dollars (as decimals)
+- Code treated these as cents (integers)
+- Resulted in 100x display error when dividing by 100
+- 10+ duplicate `formatCurrency` implementations across codebase
+- No centralized currency utilities
+
+### Solution Overview
+1. Created centralized currency utilities module
+2. Fixed SimpleFin conversion to multiply by 100
+3. Replaced all duplicate `formatCurrency` implementations
+4. Standardized all form input conversions
+5. Updated documentation
+
+### Phase 1: Currency Utilities Module ✅
+- [x] Create `src/lib/currency.ts`
+  - [x] Implement `formatCurrency()` with options support
+  - [x] Implement `dollarsToCents()` for form inputs
+  - [x] Implement `centsToDollars()` for form display
+  - [x] Implement `parseSimpleFinAmount()` for SimpleFin data
+  - [x] Add comprehensive JSDoc documentation
+  - [x] Handle edge cases (negatives, floating-point precision)
+- [x] Create `src/lib/currency.test.ts`
+  - [x] 29 unit tests covering all functions
+  - [x] Test edge cases and error handling
+  - [x] Test roundtrip conversions
+  - [x] All tests passing ✅
+
+**Phase 1 Completion:** ✅ 8/8 tasks (100%)
+
+### Phase 2: Fix SimpleFin Integration ✅
+- [x] Update `src/lib/bank-integrations/simplefin.ts`
+  - [x] Fix interface comments (dollars, not cents)
+  - [x] Document SimpleFin's actual data format
+- [x] Update `src/lib/import/transaction-importer.ts:68`
+  - [x] Replace `Math.round(Number(txn.amount))` with `parseSimpleFinAmount(txn.amount)`
+  - [x] Add import for `parseSimpleFinAmount`
+- [x] Update `src/app/api/simplefin/test/route.ts:88`
+  - [x] Fix balance conversion to use `parseSimpleFinAmount()`
+- [x] Update `src/components/features/accounts/SimpleFinConnectionForm.tsx`
+  - [x] Use `formatCurrency()` instead of manual division
+
+**Phase 2 Completion:** ✅ 4/4 tasks (100%)
+
+### Phase 3: Consolidate formatCurrency Implementations ✅
+- [x] Update `src/lib/goals.ts`
+  - [x] Remove local `formatCurrency` function
+  - [x] Import and re-export from `currency.ts` for backward compatibility
+- [x] Update component files (11 files)
+  - [x] `src/components/layout/Sidebar.tsx`
+  - [x] `src/components/features/transactions/TransactionList.tsx`
+  - [x] `src/components/features/accounts/AccountItem.tsx`
+  - [x] `src/components/features/budget/CategoryGroupSection.tsx`
+  - [x] `src/components/features/budget/CategoryRow.tsx`
+  - [x] `src/components/features/budget/ReadyToAssignCard.tsx`
+  - [x] `src/components/features/reports/SpendingPieChart.tsx`
+  - [x] `src/components/features/reports/IncomeExpenseBarChart.tsx`
+  - [x] `src/components/features/reports/NetWorthLineChart.tsx`
+  - [x] `src/app/(dashboard)/accounts/[accountId]/page.tsx`
+  - [x] All imports updated to use `@/lib/currency`
+  - [x] Report components use custom formatting (0 decimal places)
+
+**Phase 3 Completion:** ✅ 12/12 tasks (100%)
+
+### Phase 4: Standardize Form Input Conversions ✅
+- [x] Update all form components to use `dollarsToCents()`
+  - [x] `src/components/features/accounts/AccountForm.tsx:68`
+  - [x] `src/components/features/transactions/TransactionForm.tsx:101`
+  - [x] `src/components/features/goals/GoalForm.tsx:108,116` (2 conversions)
+  - [x] `src/components/features/budget/AssignMoneyDialog.tsx:51`
+  - [x] `src/components/features/budget/TargetSection.tsx:82`
+  - [x] `src/app/api/accounts/[id]/import-csv/route.ts:52`
+- [x] Replace all `Math.round(parseFloat(amount) * 100)` patterns
+- [x] Add imports for `dollarsToCents`
+
+**Phase 4 Completion:** ✅ 8/8 tasks (100%)
+
+### Phase 5: Data Migration Strategy ✅
+- [x] Create `scripts/delete-simplefin-transactions.ts`
+  - [x] Find all SimpleFin transactions by importId pattern
+  - [x] Display summary by account
+  - [x] Safety checks (commented deletion code)
+  - [x] Instructions for re-import process
+- [x] User strategy: Delete and re-import
+  - [x] Simpler and safer than database migration
+  - [x] Ensures data matches SimpleFin source of truth
+  - [x] Works for ~100-1000 transactions
+
+**Phase 5 Completion:** ✅ 6/6 tasks (100%)
+
+### Phase 6: Documentation & Verification ✅
+- [x] Update `CONVENTIONS.md`
+  - [x] Document centralized currency utilities
+  - [x] Add SimpleFin integration warning
+  - [x] Add best practices section
+  - [x] Add code examples for all utilities
+  - [x] Add error handling examples
+- [x] Run comprehensive tests
+  - [x] All 71 tests passing ✅
+  - [x] Currency tests: 29/29 passing
+  - [x] SimpleFin tests: 14/14 passing
+  - [x] CSV parser tests: 16/16 passing
+  - [x] Encryption tests: 12/12 passing
+- [x] Verify no regressions
+  - [x] All existing tests still passing
+  - [x] Build succeeds
+  - [x] Type checking passes
+
+**Phase 6 Completion:** ✅ 13/13 tasks (100%)
+
+---
+
+### Summary of Changes
+
+**Files Created (2):**
+1. `src/lib/currency.ts` - Centralized currency utilities
+2. `src/lib/currency.test.ts` - 29 unit tests
+
+**Files Modified (19):**
+
+**SimpleFin Integration (3 files):**
+- `src/lib/bank-integrations/simplefin.ts` - Fixed interface comments
+- `src/lib/import/transaction-importer.ts` - Use parseSimpleFinAmount()
+- `src/app/api/simplefin/test/route.ts` - Fix balance conversion
+
+**Currency Formatting (11 files):**
+- `src/lib/goals.ts` - Import from currency.ts
+- `src/components/layout/Sidebar.tsx`
+- `src/components/features/transactions/TransactionList.tsx`
+- `src/components/features/accounts/AccountItem.tsx`
+- `src/components/features/budget/CategoryGroupSection.tsx`
+- `src/components/features/budget/CategoryRow.tsx`
+- `src/components/features/budget/ReadyToAssignCard.tsx`
+- `src/components/features/reports/SpendingPieChart.tsx`
+- `src/components/features/reports/IncomeExpenseBarChart.tsx`
+- `src/components/features/reports/NetWorthLineChart.tsx`
+- `src/app/(dashboard)/accounts/[accountId]/page.tsx`
+
+**Form Conversions (6 files):**
+- `src/components/features/accounts/AccountForm.tsx`
+- `src/components/features/transactions/TransactionForm.tsx`
+- `src/components/features/goals/GoalForm.tsx`
+- `src/components/features/budget/AssignMoneyDialog.tsx`
+- `src/components/features/budget/TargetSection.tsx`
+- `src/app/api/accounts/[id]/import-csv/route.ts`
+
+**Documentation (1 file):**
+- `CONVENTIONS.md` - Comprehensive currency handling guide
+
+**Scripts (1 file):**
+- `scripts/delete-simplefin-transactions.ts` - Data cleanup script
+
+### Testing Results
+- ✅ 71 total tests passing
+- ✅ 29 new currency utility tests
+- ✅ All existing tests still passing
+- ✅ No regressions detected
+- ✅ TypeScript compilation successful
+
+### Next Steps (User Action Required)
+1. Run the data cleanup script:
+   ```bash
+   npx tsx scripts/delete-simplefin-transactions.ts
+   ```
+   Edit the script to uncomment deletion code when ready
+
+2. Re-sync SimpleFin accounts to re-import with correct amounts
+
+3. Verify amounts display correctly (e.g., $1,336.89 instead of $13.37)
+
+### Impact
+- ✅ **Bug Fixed:** SimpleFin transactions now display correct amounts
+- ✅ **Code Quality:** Eliminated 10+ duplicate implementations
+- ✅ **Maintainability:** Single source of truth for currency operations
+- ✅ **Documentation:** Comprehensive guide in CONVENTIONS.md
+- ✅ **Testing:** 29 new unit tests ensure correctness
+
+**Currency Standardization Complete!** 🎉
+
+**Last Updated:** 2026-03-12 (Currency standardization complete)

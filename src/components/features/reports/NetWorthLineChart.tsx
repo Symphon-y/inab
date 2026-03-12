@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { formatCurrency } from '@/lib/currency';
 import { Card } from '@/components/ui/card';
 import { ChartSkeleton } from './ChartSkeleton';
 
@@ -50,13 +51,9 @@ export function NetWorthLineChart({ accountType = 'all' }: NetWorthLineChartProp
     fetchData();
   }, [accountType]);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value / 100);
+  // Format currency with no decimal places for the chart
+  const formatChartCurrency = (value: number) => {
+    return formatCurrency(value, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   };
 
   const formatDate = (dateString: string) => {
@@ -70,7 +67,7 @@ export function NetWorthLineChart({ accountType = 'all' }: NetWorthLineChartProp
       return (
         <div className="bg-popover border rounded-lg p-3 shadow-lg">
           <p className="text-xs text-muted-foreground">{formatDate(item.payload.date)}</p>
-          <p className="text-sm font-medium mt-1">{formatCurrency(item.value)}</p>
+          <p className="text-sm font-medium mt-1">{formatChartCurrency(item.value)}</p>
         </div>
       );
     }
@@ -114,7 +111,7 @@ export function NetWorthLineChart({ accountType = 'all' }: NetWorthLineChartProp
           Net Worth {accountType === 'budget' ? '(Budget Accounts)' : '(All Accounts)'}
         </h3>
         <div className="mt-2 flex items-baseline gap-2">
-          <p className="text-3xl font-bold">{formatCurrency(data.current)}</p>
+          <p className="text-3xl font-bold">{formatChartCurrency(data.current)}</p>
           <p className="text-sm text-muted-foreground">Current</p>
         </div>
       </div>
@@ -124,7 +121,7 @@ export function NetWorthLineChart({ accountType = 'all' }: NetWorthLineChartProp
         {Object.entries(accountsByType).map(([type, info]) => (
           <div key={type} className="border rounded-lg p-3">
             <p className="text-xs text-muted-foreground capitalize">{type}</p>
-            <p className="text-sm font-medium mt-1">{formatCurrency(info.balance)}</p>
+            <p className="text-sm font-medium mt-1">{formatChartCurrency(info.balance)}</p>
             <p className="text-xs text-muted-foreground">{info.count} account{info.count !== 1 ? 's' : ''}</p>
           </div>
         ))}
@@ -140,7 +137,7 @@ export function NetWorthLineChart({ accountType = 'all' }: NetWorthLineChartProp
               className="text-xs"
             />
             <YAxis
-              tickFormatter={(value) => formatCurrency(value)}
+              tickFormatter={(value) => formatChartCurrency(value)}
               className="text-xs"
             />
             <Tooltip content={<CustomTooltip />} />

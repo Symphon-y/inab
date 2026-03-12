@@ -14,6 +14,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatCurrency } from '@/lib/currency';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -62,13 +63,6 @@ export function Sidebar({ className }: SidebarProps) {
 
   const budgetAccounts = accounts.filter((a) => a.isOnBudget && !a.isClosed);
   const trackingAccounts = accounts.filter((a) => !a.isOnBudget && !a.isClosed);
-
-  const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(cents / 100);
-  };
 
   const totalBudget = budgetAccounts.reduce((sum, acc) => sum + acc.balance, 0);
   const totalTracking = trackingAccounts.reduce((sum, acc) => sum + acc.balance, 0);

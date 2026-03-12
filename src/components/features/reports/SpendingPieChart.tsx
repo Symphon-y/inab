@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { PieChartIcon } from 'lucide-react';
+import { formatCurrency } from '@/lib/currency';
 import { Card } from '@/components/ui/card';
 import { ChartSkeleton } from './ChartSkeleton';
 
@@ -60,16 +61,12 @@ export function SpendingPieChart({ startDate, endDate, groupBy = 'category' }: S
     fetchData();
   }, [startDate, endDate, groupBy]);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value / 100);
-  };
-
   const total = data.reduce((sum, item) => sum + item.value, 0);
+
+  // Format currency with no decimal places for the chart
+  const formatChartCurrency = (value: number) => {
+    return formatCurrency(value, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  };
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -81,7 +78,7 @@ export function SpendingPieChart({ startDate, endDate, groupBy = 'category' }: S
           {item.payload.group && (
             <p className="text-xs text-muted-foreground">{item.payload.group}</p>
           )}
-          <p className="text-sm mt-1">{formatCurrency(item.value)}</p>
+          <p className="text-sm mt-1">{formatChartCurrency(item.value)}</p>
           <p className="text-xs text-muted-foreground">{percentage}% of total</p>
         </div>
       );
@@ -135,7 +132,7 @@ export function SpendingPieChart({ startDate, endDate, groupBy = 'category' }: S
     <Card className="p-6">
       <div className="mb-4">
         <h3 className="text-lg font-semibold">Spending by {groupBy === 'category' ? 'Category' : 'Payee'}</h3>
-        <p className="text-sm text-muted-foreground">Total: {formatCurrency(total)}</p>
+        <p className="text-sm text-muted-foreground">Total: {formatChartCurrency(total)}</p>
       </div>
 
       <ResponsiveContainer width="100%" height={400}>

@@ -1,5 +1,6 @@
 import { Header } from '@/components/layout';
 import { AccountTransactions } from '@/components/features/accounts/AccountTransactions';
+import { formatCurrency } from '@/lib/currency';
 import { db } from '@/db';
 import { accounts } from '@/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
@@ -23,13 +24,6 @@ export default async function AccountPage({ params }: AccountPageProps) {
   if (!account) {
     notFound();
   }
-
-  const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(cents / 100);
-  };
 
   return (
     <div className="flex h-full flex-col">

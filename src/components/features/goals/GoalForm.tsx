@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { dollarsToCents } from '@/lib/currency';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -105,7 +106,7 @@ export function GoalForm({
 
       // Add fields based on goal type
       if (goalType === 'target_balance' || goalType === 'target_balance_by_date') {
-        data.targetAmount = Math.round(parseFloat(targetAmount) * 100);
+        data.targetAmount = dollarsToCents(targetAmount);
       }
 
       if (goalType === 'target_balance_by_date') {
@@ -113,7 +114,7 @@ export function GoalForm({
       }
 
       if (goalType === 'monthly_funding' || goalType === 'spending_monthly') {
-        data.monthlyFunding = Math.round(parseFloat(monthlyFunding) * 100);
+        data.monthlyFunding = dollarsToCents(monthlyFunding);
       }
 
       await onSubmit(data);

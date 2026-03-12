@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Line, ComposedChart } from 'recharts';
 import { BarChart3 } from 'lucide-react';
+import { formatCurrency } from '@/lib/currency';
 import { Card } from '@/components/ui/card';
 import { ChartSkeleton } from './ChartSkeleton';
 
@@ -45,13 +46,9 @@ export function IncomeExpenseBarChart({ startDate, endDate }: IncomeExpenseBarCh
     fetchData();
   }, [startDate, endDate]);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value / 100);
+  // Format currency with no decimal places for the chart
+  const formatChartCurrency = (value: number) => {
+    return formatCurrency(value, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   };
 
   const formatMonth = (monthString: string) => {
@@ -74,7 +71,7 @@ export function IncomeExpenseBarChart({ startDate, endDate }: IncomeExpenseBarCh
                 />
                 {item.name}:
               </span>
-              <span className="font-medium">{formatCurrency(item.value)}</span>
+              <span className="font-medium">{formatChartCurrency(item.value)}</span>
             </div>
           ))}
         </div>
@@ -122,16 +119,16 @@ export function IncomeExpenseBarChart({ startDate, endDate }: IncomeExpenseBarCh
         <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="border rounded-lg p-3">
             <p className="text-xs text-muted-foreground">Total Income</p>
-            <p className="text-sm font-medium mt-1 text-green-600">{formatCurrency(totals.income)}</p>
+            <p className="text-sm font-medium mt-1 text-green-600">{formatChartCurrency(totals.income)}</p>
           </div>
           <div className="border rounded-lg p-3">
             <p className="text-xs text-muted-foreground">Total Expenses</p>
-            <p className="text-sm font-medium mt-1 text-red-600">{formatCurrency(totals.expense)}</p>
+            <p className="text-sm font-medium mt-1 text-red-600">{formatChartCurrency(totals.expense)}</p>
           </div>
           <div className="border rounded-lg p-3">
             <p className="text-xs text-muted-foreground">Net Savings</p>
             <p className={`text-sm font-medium mt-1 ${totals.netSavings >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {formatCurrency(totals.netSavings)}
+              {formatChartCurrency(totals.netSavings)}
             </p>
           </div>
           <div className="border rounded-lg p-3">
@@ -152,7 +149,7 @@ export function IncomeExpenseBarChart({ startDate, endDate }: IncomeExpenseBarCh
             className="text-xs"
           />
           <YAxis
-            tickFormatter={(value) => formatCurrency(value)}
+            tickFormatter={(value) => formatChartCurrency(value)}
             className="text-xs"
           />
           <Tooltip content={<CustomTooltip />} />

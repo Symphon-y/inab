@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { formatCurrency } from '@/lib/currency';
 import { cn } from '@/lib/utils';
 
 interface ReadyToAssignCardProps {
@@ -45,13 +46,6 @@ export function ReadyToAssignCard({ year, month, refreshTrigger }: ReadyToAssign
   useEffect(() => {
     fetchSummary();
   }, [fetchSummary, refreshTrigger]);
-
-  const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(cents / 100);
-  };
 
   const getReadyToAssignColor = (amount: number) => {
     if (amount > 0) return 'text-green-600';

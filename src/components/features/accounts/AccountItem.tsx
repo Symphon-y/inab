@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { CreditCard, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { formatCurrency } from '@/lib/currency';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -25,13 +26,6 @@ export function AccountItem({ account, onEdit, onDelete }: AccountItemProps) {
   const isActive = pathname === `/accounts/${account.id}`;
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
-  const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(cents / 100);
-  };
 
   const handleDelete = async () => {
     setDeleting(true);

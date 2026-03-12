@@ -219,18 +219,66 @@ test.describe('Budget Management', () => {
 ### Storage
 - Always store amounts in cents (smallest currency unit)
 - Use `bigint` in database for large amounts
+- This avoids floating-point precision issues
 
-### Display
+### Centralized Utilities
+All currency operations use centralized utilities from `@/lib/currency`:
+
 ```typescript
-// Use Intl.NumberFormat for formatting
-const formatCurrency = (cents: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(cents / 100);
-};
+import { formatCurrency, dollarsToCents, centsToDollars, parseSimpleFinAmount } from '@/lib/currency';
+
+// Display amounts
+const balance = 133689; // cents in database
+console.log(formatCurrency(balance)); // "$1,336.89"
+
+// Custom formatting (e.g., for charts - no decimals)
+console.log(formatCurrency(balance, { minimumFractionDigits: 0, maximumFractionDigits: 0 })); // "$1,337"
+
+// Input forms - convert user input to cents
+const userInput = "1336.89";
+const cents = dollarsToCents(userInput); // 133689
+
+// Initialize form fields - convert cents to dollars
+const [amount, setAmount] = useState(centsToDollars(transaction.amount)); // "1336.89"
+
+// SimpleFin integration - convert SimpleFin dollars to cents
+const simpleFinAmount = 1336.89; // SimpleFin sends dollars
+const cents = parseSimpleFinAmount(simpleFinAmount); // 133689
 ```
 
-### Calculations
-- Perform all calculations in cents
-- Convert to/from cents at input/output boundaries
+### SimpleFin Integration
+⚠️ **IMPORTANT:** SimpleFin API returns amounts in **dollars** (as decimals), NOT cents.
+
+Always use `parseSimpleFinAmount()` when processing SimpleFin data:
+- Account balances
+- Transaction amounts
+
+**Example:**
+```typescript
+// SimpleFin API response
+const simpleFinTransaction = {
+  amount: 1336.89,  // dollars from SimpleFin
+  description: "PayPal payment"
+};
+
+// Convert to cents for storage
+const cents = parseSimpleFinAmount(simpleFinTransaction.amount); // 133689
+```
+
+### Best Practices
+- **Never** create local `formatCurrency` functions - always import from `@/lib/currency`
+- **Never** manually multiply/divide by 100 - use `dollarsToCents()` and `centsToDollars()`
+- **Never** use `parseFloat()` or `Math.round()` directly for currency - use the utilities
+- **Always** perform calculations in cents (integers)
+- **Always** convert at input/output boundaries only
+
+### Error Handling
+The currency utilities throw errors for invalid inputs:
+```typescript
+try {
+  const cents = dollarsToCents(userInput);
+} catch (error) {
+  // Handle invalid input (e.g., "abc", "", null)
+  console.error('Invalid dollar amount:', error.message);
+}
+```

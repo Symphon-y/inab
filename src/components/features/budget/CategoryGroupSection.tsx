@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, Plus, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { formatCurrency } from '@/lib/currency';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -47,13 +48,6 @@ export function CategoryGroupSection({
   getGoalForCategory,
 }: CategoryGroupSectionProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
-
-  const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(cents / 100);
-  };
 
   // Calculate group totals
   const totalAssigned = categories.reduce((sum, cat) => sum + cat.assigned, 0);

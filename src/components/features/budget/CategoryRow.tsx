@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { MoreHorizontal, Pencil, Trash2, Target } from 'lucide-react';
+import { formatCurrency } from '@/lib/currency';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -41,14 +42,6 @@ export function CategoryRow({
   onSetGoal,
 }: CategoryRowProps) {
   const [isHovered, setIsHovered] = useState(false);
-
-  const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      signDisplay: 'auto',
-    }).format(cents / 100);
-  };
 
   const getAvailableBadgeStyle = (amount: number) => {
     if (amount > 0) {

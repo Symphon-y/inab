@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Pencil, Trash2, Plus, Receipt } from 'lucide-react';
+import { formatCurrency } from '@/lib/currency';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -36,13 +37,6 @@ export function TransactionList({
   onDeleteTransaction,
   loading = false,
 }: TransactionListProps) {
-  const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(Math.abs(cents) / 100);
-  };
-
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString('en-US', {
       month: 'short',

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Target } from 'lucide-react';
+import { dollarsToCents } from '@/lib/currency';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -79,7 +80,7 @@ export function TargetSection({
   }, [goal]);
 
   const handleSave = () => {
-    const amountCents = Math.round(parseFloat(amount || '0') * 100);
+    const amountCents = dollarsToCents(amount || '0');
 
     switch (activeTab) {
       case 'weekly': {

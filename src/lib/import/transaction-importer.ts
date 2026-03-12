@@ -3,6 +3,7 @@ import { transactions, accounts, accountConnections, importSyncLogs } from '@/db
 import { eq, and, isNull, sql } from 'drizzle-orm';
 import { fetchSimpleFinData } from '@/lib/bank-integrations/simplefin';
 import { updateBudgetActivityForTransaction } from '@/lib/budget';
+import { parseSimpleFinAmount } from '@/lib/currency';
 import type { AccountConnection } from '@/db/schema';
 
 /**
@@ -65,7 +66,7 @@ async function fetchTransactionsFromProvider(
     return account.transactions.map((txn) => ({
       externalId: txn.id,
       date: new Date(txn.posted * 1000),
-      amount: Math.round(Number(txn.amount)), // Ensure it's an integer (SimpleFin returns cents as number/string)
+      amount: parseSimpleFinAmount(txn.amount), // Convert SimpleFin dollars to cents
       payee: txn.payee || txn.description,
       memo: txn.memo,
       status: 'cleared', // SimpleFIN only returns posted transactions

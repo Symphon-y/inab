@@ -1,4 +1,8 @@
 import type { Goal, GoalType } from '@/db/schema';
+import { formatCurrency } from '@/lib/currency';
+
+// Re-export formatCurrency for backward compatibility
+export { formatCurrency };
 
 /**
  * Goal status indicator
@@ -203,23 +207,6 @@ export function getSuggestedContribution(goal: Goal, currentBalance: number): st
     default:
       return '';
   }
-}
-
-/**
- * Format currency for display
- * @param cents - Amount in cents
- * @returns Formatted currency string
- */
-export function formatCurrency(cents: number): string {
-  const dollars = Math.abs(cents) / 100;
-  const formatted = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(dollars);
-
-  return cents < 0 ? `-${formatted}` : formatted;
 }
 
 /**

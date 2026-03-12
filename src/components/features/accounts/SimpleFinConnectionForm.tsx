@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle2, XCircle, Loader2, ExternalLink } from 'lucide-react';
+import { formatCurrency } from '@/lib/currency';
 import type { AccountType } from '@/db/schema';
 
 interface SimpleFinAccount {
@@ -199,7 +200,7 @@ export function SimpleFinConnectionForm({ onAccountSelected }: SimpleFinConnecti
                   <label htmlFor={account.id} className="flex-1 text-sm cursor-pointer">
                     <div className="font-medium">{account.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      Balance: ${(account.balance / 100).toFixed(2)} • Type: {account.type || 'Unknown'}
+                      Balance: {formatCurrency(account.balance)} • Type: {account.type || 'Unknown'}
                     </div>
                   </label>
                 </div>
