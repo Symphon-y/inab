@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import {
   Wallet,
   PiggyBank,
@@ -12,6 +13,7 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
+  RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/currency';
@@ -21,7 +23,9 @@ import { Separator } from '@/components/ui/separator';
 import { AccountItem } from '@/components/features/accounts';
 import { AccountForm, AccountFormData } from '@/components/features/accounts';
 import { PlanSwitcher } from '@/components/features/plans';
+import { useAccountRefresh } from '@/hooks/useAccountRefresh';
 import type { Account } from '@/db/schema';
+import type { AccountWithConnection } from '@/types/account';
 
 interface SidebarProps {
   className?: string;
@@ -30,12 +34,13 @@ interface SidebarProps {
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [accounts, setAccounts] = useState<AccountWithConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAccountForm, setShowAccountForm] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [addingToBudget, setAddingToBudget] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { refreshAccounts, isRefreshing } = useAccountRefresh();
 
   const navItems = [
     { label: 'Budget', href: '/budget', icon: PiggyBank },
@@ -45,7 +50,7 @@ export function Sidebar({ className }: SidebarProps) {
 
   const fetchAccounts = useCallback(async () => {
     try {
-      const res = await fetch('/api/accounts');
+      const res = await fetch('/api/accounts/with-connections', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setAccounts(data);
@@ -126,6 +131,35 @@ export function Sidebar({ className }: SidebarProps) {
     }
   };
 
+  const handleRefreshAccounts = useCallback(async () => {
+    try {
+      // Filter accounts with SimpleFin connections
+      const connectedAccountIds = accounts
+        .filter(acc => acc.hasConnection)
+        .map(acc => acc.id);
+
+      if (connectedAccountIds.length === 0) {
+        toast('No connected accounts', {
+          description: 'Connect a SimpleFin account to use refresh.',
+        });
+        return;
+      }
+
+      await refreshAccounts(connectedAccountIds);
+
+      // Refresh account list to show updated balances
+      await fetchAccounts();
+
+      toast.success('Accounts refreshed', {
+        description: `Successfully synced ${connectedAccountIds.length} account(s)`,
+      });
+    } catch (error) {
+      toast.error('Refresh failed', {
+        description: error instanceof Error ? error.message : 'Failed to refresh accounts',
+      });
+    }
+  }, [accounts, refreshAccounts, fetchAccounts]);
+
   return (
     <>
       <aside className={cn(
@@ -193,6 +227,22 @@ export function Sidebar({ className }: SidebarProps) {
               );
             })}
           </nav>
+
+          {/* Refresh Accounts Button */}
+          {!isCollapsed && accounts.some(acc => acc.hasConnection) && (
+            <div className="px-0 pt-4 pb-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={handleRefreshAccounts}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={cn("h-4 w-4 mr-2", isRefreshing && "animate-spin")} />
+                Refresh Accounts
+              </Button>
+            </div>
+          )}
 
           {!isCollapsed && <Separator className="my-4" />}
 
