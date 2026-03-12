@@ -16,6 +16,7 @@
     "docker:build": "docker compose build --no-cache",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f app",
+    "docker:push": "node scripts/docker-push.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",

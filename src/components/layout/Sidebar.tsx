@@ -180,7 +180,7 @@ export function Sidebar({ className }: SidebarProps) {
     <>
       <aside className={cn(
         'flex h-full flex-col border-r bg-muted/30 transition-all duration-300',
-        isCollapsed ? 'w-16' : 'w-64',
+        isCollapsed ? 'w-16' : 'w-fit',
         className
       )}>
         <div className="flex h-14 items-center border-b px-4 justify-between">
