@@ -352,7 +352,7 @@ export async function importTransactionsForAccount(
     await db
       .update(importSyncLogs)
       .set({
-        status: errors.length === importedTransactions.length ? 'failed' : errors.length > 0 ? 'partial' : 'success',
+        status: errors.length === providerData.transactions.length ? 'failed' : errors.length > 0 ? 'partial' : 'success',
         completedAt: new Date(),
         transactionsImported: imported,
         transactionsUpdated: updated,
