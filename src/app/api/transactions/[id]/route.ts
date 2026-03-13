@@ -67,13 +67,37 @@ export async function PUT(request: Request, { params }: RouteParams) {
       .where(and(eq(transactions.id, id), isNull(transactions.deletedAt)))
       .returning();
 
-    // Update account balance if amount changed
-    if (body.amount !== undefined && body.amount !== oldTransaction.amount) {
-      const difference = body.amount - oldTransaction.amount;
+    // Update account balances if amount or status changed
+    const oldStatus = oldTransaction.status;
+    const newStatus = body.status || oldStatus;
+    const oldAmount = oldTransaction.amount;
+    const newAmount = body.amount ?? oldAmount;
+
+    if (oldAmount !== newAmount || oldStatus !== newStatus) {
+      const balanceDelta = newAmount - oldAmount;
+      let clearedDelta = 0;
+      let unclearedDelta = 0;
+
+      // Remove from old bucket
+      if (oldStatus === 'uncleared') {
+        unclearedDelta -= oldAmount;
+      } else {
+        clearedDelta -= oldAmount;
+      }
+
+      // Add to new bucket
+      if (newStatus === 'uncleared') {
+        unclearedDelta += newAmount;
+      } else {
+        clearedDelta += newAmount;
+      }
+
       await db
         .update(accounts)
         .set({
-          balance: sql`balance + ${difference}`,
+          balance: sql`balance + ${balanceDelta}`,
+          clearedBalance: sql`clearedBalance + ${clearedDelta}`,
+          unclearedBalance: sql`unclearedBalance + ${unclearedDelta}`,
           updatedAt: new Date(),
         })
         .where(eq(accounts.id, oldTransaction.accountId));
@@ -124,10 +148,21 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       .where(eq(transactions.id, id));
 
     // Reverse the balance on the account
+    let clearedDelta = 0;
+    let unclearedDelta = 0;
+
+    if (transaction.status === 'uncleared') {
+      unclearedDelta = -transaction.amount;
+    } else {
+      clearedDelta = -transaction.amount;
+    }
+
     await db
       .update(accounts)
       .set({
         balance: sql`balance - ${transaction.amount}`,
+        clearedBalance: sql`clearedBalance + ${clearedDelta}`,
+        unclearedBalance: sql`unclearedBalance + ${unclearedDelta}`,
         updatedAt: new Date(),
       })
       .where(eq(accounts.id, transaction.accountId));

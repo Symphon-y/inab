@@ -79,7 +79,7 @@ export async function POST(request: Request, { params }: RouteParams) {
           provider,
           encryptedCredentials,
           externalAccountId,
-          syncStartDate: syncStartDate ? new Date(syncStartDate) : null,
+          syncStartDate: syncStartDate ? new Date(syncStartDate) : new Date(),
           status: 'active',
           lastError: null,
           updatedAt: new Date(),
@@ -98,7 +98,7 @@ export async function POST(request: Request, { params }: RouteParams) {
         provider,
         encryptedCredentials,
         externalAccountId,
-        syncStartDate: syncStartDate ? new Date(syncStartDate) : null,
+        syncStartDate: syncStartDate ? new Date(syncStartDate) : new Date(),
         status: 'active',
       })
       .returning();

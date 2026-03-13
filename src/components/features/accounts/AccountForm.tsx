@@ -108,7 +108,7 @@ export function AccountForm({ open, onOpenChange, account, onSubmit }: AccountFo
             body: JSON.stringify({
               name: accountData.accountName,
               accountType: accountData.accountType,
-              balance: Math.round(accountData.balance),
+              balance: 0, // Starting balance transaction created during first sync
               isOnBudget,
             }),
           });

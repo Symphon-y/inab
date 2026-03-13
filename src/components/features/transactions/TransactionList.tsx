@@ -26,6 +26,7 @@ interface TransactionListProps {
   onAddTransaction: () => void;
   onEditTransaction: (transaction: Transaction) => void;
   onDeleteTransaction: (transaction: Transaction) => void;
+  onStatusToggle?: (transactionId: string, newStatus: 'cleared' | 'uncleared') => void;
   loading?: boolean;
 }
 
@@ -35,6 +36,7 @@ export function TransactionList({
   onAddTransaction,
   onEditTransaction,
   onDeleteTransaction,
+  onStatusToggle,
   loading = false,
 }: TransactionListProps) {
   const formatDate = (date: Date) => {
@@ -58,14 +60,44 @@ export function TransactionList({
     return colors[flag];
   };
 
-  const getStatusBadge = (status: TransactionStatus) => {
-    if (status === 'cleared') {
-      return <span className="text-xs text-green-600">✓</span>;
-    }
-    if (status === 'reconciled') {
-      return <span className="text-xs text-blue-600">R</span>;
-    }
-    return null;
+  const getStatusBadge = (transaction: Transaction) => {
+    const handleClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+
+      // Only toggle if handler is provided and transaction is not reconciled
+      if (onStatusToggle && transaction.status !== 'reconciled') {
+        const newStatus = transaction.status === 'cleared' ? 'uncleared' : 'cleared';
+        onStatusToggle(transaction.id, newStatus);
+      }
+    };
+
+    const isClickable = onStatusToggle && transaction.status !== 'reconciled';
+
+    return (
+      <button
+        onClick={handleClick}
+        className={cn(
+          'rounded px-1 transition-colors',
+          isClickable && 'hover:bg-gray-100 cursor-pointer'
+        )}
+        title={
+          transaction.status === 'reconciled'
+            ? 'Reconciled (cannot toggle)'
+            : `Click to ${transaction.status === 'cleared' ? 'unclear' : 'clear'}`
+        }
+        disabled={!isClickable}
+      >
+        {transaction.status === 'cleared' && (
+          <span className="text-xs text-green-600 font-semibold">✓</span>
+        )}
+        {transaction.status === 'reconciled' && (
+          <span className="text-xs text-blue-600 font-semibold">R</span>
+        )}
+        {transaction.status === 'uncleared' && (
+          <span className="text-xs text-gray-400">○</span>
+        )}
+      </button>
+    );
   };
 
   // Calculate running balance
@@ -131,7 +163,7 @@ export function TransactionList({
                 {/* Date with Status */}
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
-                    {getStatusBadge(transaction.status)}
+                    {getStatusBadge(transaction)}
                     <span className="text-sm">{formatDate(transaction.date)}</span>
                   </div>
                 </TableCell>

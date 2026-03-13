@@ -5,7 +5,7 @@ import { Plus } from 'lucide-react';
 
 interface HeaderProps {
   title: string;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   actions?: React.ReactNode;
 }
 
@@ -16,7 +16,7 @@ export function Header({ title, subtitle, actions }: HeaderProps) {
         <div>
           <h1 className="text-lg font-semibold">{title}</h1>
           {subtitle && (
-            <p className="text-sm text-muted-foreground">{subtitle}</p>
+            <div className="text-sm text-muted-foreground">{subtitle}</div>
           )}
         </div>
       </div>

@@ -35,7 +35,9 @@ export function SimpleFinConnectionForm({ onAccountSelected }: SimpleFinConnecti
   const [errorMessage, setErrorMessage] = useState('');
   const [availableAccounts, setAvailableAccounts] = useState<SimpleFinAccount[]>([]);
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
-  const [syncStartDate, setSyncStartDate] = useState('');
+  const [syncStartDate, setSyncStartDate] = useState(
+    new Date().toISOString().split('T')[0]
+  );
 
   const handleTestConnection = async () => {
     if (!setupToken.trim()) {
@@ -213,7 +215,8 @@ export function SimpleFinConnectionForm({ onAccountSelected }: SimpleFinConnecti
             </div>
           </div>
 
-          <div className="space-y-2">
+          {/* Import Transactions Since x Date */}
+          {/* <div className="space-y-2">
             <label htmlFor="syncStartDate" className="text-sm font-medium">
               Import Transactions Since (Optional)
             </label>
@@ -225,9 +228,13 @@ export function SimpleFinConnectionForm({ onAccountSelected }: SimpleFinConnecti
               max={new Date().toISOString().split('T')[0]}
             />
             <p className="text-xs text-muted-foreground">
-              Leave empty to import all available transactions (usually last 90 days)
+              To ensure accurate starting balance, we only import transactions from today forward.
+              Your account's current balance will be set as the starting balance.
             </p>
-          </div>
+            <p className="text-xs text-yellow-600 border-l-2 border-yellow-600 pl-2 mt-2">
+              Note: If you change this date for an existing account, you may need to manually adjust your balance.
+            </p>
+          </div> */}
 
           <Button
             type="button"

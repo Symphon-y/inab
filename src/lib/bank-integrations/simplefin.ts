@@ -13,7 +13,7 @@ interface SimpleFinCredentials {
 interface SimpleFinTransaction {
   id: string;
   posted: number; // Unix timestamp
-  amount: number; // In dollars (SimpleFin format - negative for outflow, positive for inflow)
+  amount: string; // In dollars as string (SimpleFin format - negative for outflow, positive for inflow)
   description: string;
   payee?: string;
   memo?: string;
@@ -25,8 +25,8 @@ interface SimpleFinTransaction {
 interface SimpleFinAccount {
   id: string;
   name: string;
-  balance: number; // In dollars (SimpleFin format)
-  'available-balance'?: number; // In dollars (SimpleFin format)
+  balance: string; // In dollars as string (SimpleFin format)
+  'available-balance'?: string; // In dollars as string (SimpleFin format)
   transactions: SimpleFinTransaction[];
 }
 

@@ -13,9 +13,10 @@ interface TransactionWithCategory extends Transaction {
 
 interface AccountTransactionsProps {
   account: Account;
+  onBalanceUpdate?: () => void;
 }
 
-export function AccountTransactions({ account }: AccountTransactionsProps) {
+export function AccountTransactions({ account, onBalanceUpdate }: AccountTransactionsProps) {
   const [transactions, setTransactions] = useState<TransactionWithCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
@@ -94,6 +95,33 @@ export function AccountTransactions({ account }: AccountTransactionsProps) {
     }
   };
 
+  const handleStatusToggle = useCallback(async (transactionId: string, newStatus: 'cleared' | 'uncleared') => {
+    try {
+      const res = await fetch(`/api/transactions/${transactionId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to update status');
+      }
+
+      // Refresh transactions to get updated balances
+      await fetchTransactions();
+
+      // Notify parent to refresh account balance display
+      if (onBalanceUpdate) {
+        onBalanceUpdate();
+      }
+
+      toast.success(`Transaction ${newStatus === 'cleared' ? 'cleared' : 'uncleared'}`);
+    } catch (error) {
+      console.error('Failed to toggle transaction status:', error);
+      toast.error('Failed to update transaction status');
+    }
+  }, [fetchTransactions, onBalanceUpdate]);
+
   const handleSubmitTransaction = async (data: TransactionFormData) => {
     try {
       if (editingTransaction) {
@@ -139,6 +167,7 @@ export function AccountTransactions({ account }: AccountTransactionsProps) {
         onAddTransaction={handleAddTransaction}
         onEditTransaction={handleEditTransaction}
         onDeleteTransaction={handleDeleteTransaction}
+        onStatusToggle={handleStatusToggle}
         loading={loading}
       />
 

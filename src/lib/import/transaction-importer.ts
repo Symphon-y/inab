@@ -19,6 +19,14 @@ interface ImportedTransaction {
 }
 
 /**
+ * Provider data including transactions and balance
+ */
+interface ProviderData {
+  transactions: ImportedTransaction[];
+  balance?: number; // Balance in cents (already converted)
+}
+
+/**
  * Result of import operation
  */
 export interface ImportResult {
@@ -41,13 +49,57 @@ function generateImportId(provider: string, externalAccountId: string, externalI
 }
 
 /**
- * Fetch transactions from the appropriate provider
+ * Create a starting balance transaction for a newly connected account
+ * @param accountId - Internal account ID
+ * @param externalAccountId - Provider's account ID
+ * @param simpleFinBalance - Account balance in cents
+ * @param syncStartDate - Date to set as transaction date
+ */
+async function createStartingBalanceTransaction(
+  accountId: string,
+  externalAccountId: string,
+  simpleFinBalance: number,
+  syncStartDate: Date
+): Promise<void> {
+  const importId = generateImportId('simplefin', externalAccountId, 'starting-balance');
+
+  // Check if starting balance already exists
+  const existing = await db
+    .select()
+    .from(transactions)
+    .where(and(
+      eq(transactions.accountId, accountId),
+      eq(transactions.importId, importId)
+    ))
+    .limit(1);
+
+  if (existing.length > 0) {
+    console.log('Starting balance transaction already exists');
+    return;
+  }
+
+  // Create starting balance transaction
+  await db.insert(transactions).values({
+    accountId,
+    payee: 'Starting Balance',
+    amount: simpleFinBalance,
+    date: syncStartDate,
+    status: 'reconciled',
+    memo: 'Initial balance from SimpleFin',
+    importId,
+  });
+
+  console.log(`Created starting balance transaction: ${simpleFinBalance} cents`);
+}
+
+/**
+ * Fetch transactions and balance from the appropriate provider
  * @param connection - Account connection with encrypted credentials
- * @returns Array of imported transactions
+ * @returns Provider data including transactions and balance
  */
 async function fetchTransactionsFromProvider(
   connection: AccountConnection
-): Promise<ImportedTransaction[]> {
+): Promise<ProviderData> {
   const sinceDate = connection.syncStartDate || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000); // Last 90 days default
 
   if (connection.provider === 'simplefin') {
@@ -63,14 +115,23 @@ async function fetchTransactionsFromProvider(
 
     console.log(`Found account ${account.id} with ${account.transactions.length} transactions`);
 
-    return account.transactions.map((txn) => ({
+    const transactions = account.transactions.map((txn) => ({
       externalId: txn.id,
       date: new Date(txn.posted * 1000),
       amount: parseSimpleFinAmount(txn.amount), // Convert SimpleFin dollars to cents
       payee: txn.payee || txn.description,
       memo: txn.memo,
-      status: 'cleared', // SimpleFIN only returns posted transactions
+      status: 'cleared' as const, // SimpleFIN only returns posted transactions
     }));
+
+    const balanceInCents = parseSimpleFinAmount(account.balance);
+
+    console.log(`SimpleFin account ${account.id}: balance=${account.balance} (raw) -> ${balanceInCents} cents`);
+
+    return {
+      transactions,
+      balance: balanceInCents,
+    };
   }
 
   throw new Error(`Unsupported provider: ${connection.provider}`);
@@ -118,16 +179,54 @@ export async function importTransactionsForAccount(
     .returning();
 
   try {
-    // Fetch transactions from provider
-    const importedTransactions = await fetchTransactionsFromProvider(connection);
-    console.log(`📥 Fetched ${importedTransactions.length} transactions from ${connection.provider}`);
+    // Fetch transactions and balance from provider
+    const providerData = await fetchTransactionsFromProvider(connection);
+    console.log(`📥 Fetched ${providerData.transactions.length} transactions from ${connection.provider}`);
 
     let imported = 0;
     let updated = 0;
     let skipped = 0;
     const errors: string[] = [];
 
-    for (const txn of importedTransactions) {
+    // Check if this is the first sync (no imported transactions exist)
+    const existingTransactions = await db
+      .select()
+      .from(transactions)
+      .where(and(
+        eq(transactions.accountId, connection.accountId),
+        sql`${transactions.importId} LIKE ${`simplefin:${connection.externalAccountId}:%`}`
+      ))
+      .limit(1);
+
+    const isFirstSync = existingTransactions.length === 0;
+
+    // On first sync, create a starting balance transaction
+    if (isFirstSync && connection.provider === 'simplefin' && providerData.balance !== undefined) {
+      const balanceInCents = providerData.balance; // Already converted to cents!
+
+      console.log(`Creating starting balance transaction: ${balanceInCents} cents`);
+
+      await createStartingBalanceTransaction(
+        connection.accountId,
+        connection.externalAccountId,
+        balanceInCents,
+        connection.syncStartDate || new Date()
+      );
+
+      // Set account balances to match starting balance
+      await db.update(accounts).set({
+        balance: balanceInCents,
+        clearedBalance: balanceInCents,
+        unclearedBalance: 0,
+        updatedAt: new Date(),
+      }).where(eq(accounts.id, connection.accountId));
+
+      imported++;
+    } else if (isFirstSync && connection.provider === 'simplefin') {
+      console.error('⚠️ Starting balance not available from SimpleFin');
+    }
+
+    for (const txn of providerData.transactions) {
       try {
         const importId = generateImportId(connection.provider, connection.externalAccountId, txn.externalId);
 
